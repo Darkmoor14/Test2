@@ -32,7 +32,16 @@
       </div>
       <a href="#booking" class="btn btn-primary" data-i18n="nav.cta">Verifică disponibilitatea</a>
     </div>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Deschide meniul">☰</button>
   </div>
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Navigație mobilă">
+    <a href="#rooms" data-i18n="nav.rooms">Camere</a>
+    <a href="#facilities" data-i18n="nav.facilities">Facilități</a>
+    <a href="#nearby" data-i18n="nav.nearby">Împrejurimi</a>
+    <a href="#gallery" data-i18n="nav.gallery">Galerie foto</a>
+    <a href="#contact" data-i18n="nav.contact">Contact</a>
+    <a href="#booking" class="btn btn-primary" data-i18n="nav.cta">Verifică disponibilitatea</a>
+  </nav>
 </header>
 
 <section class="hero" style="padding:0;">
@@ -44,6 +53,11 @@
       <a href="#booking" class="btn btn-primary" data-i18n="hero.cta1">Verifică disponibilitatea</a>
       <a href="#rooms" class="btn btn-outline" style="border-color:#fff;color:#fff;" data-i18n="hero.cta2">Vezi camerele</a>
     </div>
+    <ul class="trust-list" aria-label="Avantaje Vila Silvia">
+      <li>★★★★ · <span data-i18n="hero.trust.stars">cazare clasificată</span></li>
+      <li data-i18n="hero.trust.lake">500 m de Lacul Ursu</li>
+      <li data-i18n="hero.trust.parking">Parcare privată gratuită</li>
+    </ul>
   </div>
   <div class="hero-img">
     <img src="https://www.vilasilvia.ro/images/homepage/slider/intro-1.jpg" alt="Vila Silvia Sovata">
@@ -139,7 +153,23 @@
       <div>
         <div class="eyebrow" style="color:var(--amber-dark);" data-i18n="booking.eyebrow">Rezervare</div>
         <h2 data-i18n="booking.title">Verifică disponibilitatea</h2>
-        <div class="widget-slot" data-i18n="booking.widget">Widget de rezervare live — se conectează la Beds24 / Booking.com odată ce integrarea este activă.</div>
+        <p class="booking-intro" data-i18n="booking.intro">Completează detaliile sejurului pentru a pregăti rapid cererea de disponibilitate.</p>
+        <form class="booking-form" id="booking-form">
+          <div class="form-grid">
+            <label><span data-i18n="booking.arrival">Sosire</span><input type="date" name="arrival" required></label>
+            <label><span data-i18n="booking.departure">Plecare</span><input type="date" name="departure" required></label>
+            <label><span data-i18n="booking.guests">Număr de oaspeți</span><select name="guests" required><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4+</option></select></label>
+            <label><span data-i18n="booking.name">Nume</span><input type="text" name="name" autocomplete="name" required></label>
+            <label class="full"><span data-i18n="booking.contact_detail">Telefon sau e-mail</span><input type="text" name="contact" autocomplete="tel" required></label>
+          </div>
+          <button class="btn btn-primary" type="submit" data-i18n="booking.prepare">Pregătește cererea</button>
+          <p class="form-note" data-i18n="booking.note">Cererea nu este încă o rezervare confirmată.</p>
+          <div class="request-result" id="request-result" hidden aria-live="polite">
+            <p data-i18n="booking.result">Cererea este pregătită. O poți copia și transmite recepției.</p>
+            <textarea id="request-text" readonly aria-label="Cerere de disponibilitate"></textarea>
+            <button class="btn btn-outline" type="button" id="copy-request" data-i18n="booking.copy">Copiază cererea</button>
+          </div>
+        </form>
         <ul class="policy-list">
           <li data-i18n="booking.policy1">Cazarea cu animale de companie este interzisă.</li>
           <li data-i18n="booking.policy2">Metode de plată: cash, OP (plată anticipată), card (MasterCard / VISA).</li>
@@ -176,7 +206,7 @@
       <div>
         <h4 data-i18n="footer.contact">Contact</h4>
         <a href="tel:+40742027727">+40 742 027 727</a>
-        <a href="#" data-i18n="footer.address">Strada Verii Nr. 2, Sovata, 545500, jud. Mureș</a>
+        <a href="https://www.google.com/maps/search/?api=1&query=46.599472,25.086972" target="_blank" rel="noopener" data-i18n="footer.address">Strada Verii Nr. 2, Sovata, 545500, jud. Mureș</a>
       </div>
       <div>
         <h4 data-i18n="footer.terms">Termeni și condiții</h4>
@@ -191,6 +221,8 @@
     </div>
   </div>
 </footer>
+
+<a href="#booking" class="mobile-booking-bar" data-i18n="nav.cta">Verifică disponibilitatea</a>
 
 <script src="i18n.js"></script>
 </body>

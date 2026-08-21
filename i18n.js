@@ -194,12 +194,10 @@ const translations = {
 };
 
 function getInitialLang() {
-  const saved = localStorage.getItem('vs_lang');
-  if (saved && translations[saved]) return saved;
   const urlLang = new URLSearchParams(window.location.search).get('lang');
   if (urlLang && translations[urlLang]) return urlLang;
-  const browserLang = (navigator.language || '').slice(0, 2);
-  if (translations[browserLang]) return browserLang;
+  const saved = localStorage.getItem('vs_lang');
+  if (saved && translations[saved]) return saved;
   return 'ro';
 }
 
@@ -235,5 +233,36 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       setLanguage(a.dataset.lang);
     });
+  });
+
+  const menuButton = document.querySelector('.menu-toggle');
+  const mobileNav = document.querySelector('.mobile-nav');
+  if (menuButton && mobileNav) {
+    menuButton.addEventListener('click', () => {
+      const isOpen = mobileNav.classList.toggle('is-open');
+      menuButton.setAttribute('aria-expanded', String(isOpen));
+      menuButton.textContent = isOpen ? '×' : '☰';
+    });
+    mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+      mobileNav.classList.remove('is-open');
+      menuButton.setAttribute('aria-expanded', 'false');
+      menuButton.textContent = '☰';
+    }));
+  }
+
+  const bookingForm = document.querySelector('#booking-form');
+  const requestResult = document.querySelector('#request-result');
+  const requestText = document.querySelector('#request-text');
+  if (bookingForm && requestResult && requestText) {
+    bookingForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const data = new FormData(bookingForm);
+      requestText.value = `Cerere disponibilitate Vila Silvia\nSosire: ${data.get('arrival')}\nPlecare: ${data.get('departure')}\nOaspeți: ${data.get('guests')}\nNume: ${data.get('name')}\nContact: ${data.get('contact')}`;
+      requestResult.hidden = false;
+      requestResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+  document.querySelector('#copy-request')?.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(requestText.value);
   });
 });
