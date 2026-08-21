@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vila Silvia — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine-900:#12261D;
+    --pine-800:#1B3A2B;
+    --pine-700:#26503C;
+    --cream:#F5F1E7;
+    --paper:#FFFFFF;
+    --ink:#1E241F;
+    --ink-soft:#5B685E;
+    --line:#E4DFD1;
+    --amber:#B4823A;
+    --amber-dark:#8A6329;
+    --amber-bg:#F4E9D5;
+    --red:#B4453A;
+    --red-bg:#F6E3E0;
+    --teal:#2E6E63;
+    --teal-bg:#DEEDE9;
+    --blue:#3A6FA0;
+    --blue-bg:#E1EBF4;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);}
+  a{color:inherit;}
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{width:236px;background:var(--pine-900);color:#EDEEE7;flex-shrink:0;display:flex;flex-direction:column;padding:24px 16px;}
+  .brand{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:#fff;padding:0 8px 24px;letter-spacing:0.2px;}
+  .brand span{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8FA495;margin-top:4px;}
+  nav{display:flex;flex-direction:column;gap:2px;}
+  .nav-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:none;border:none;color:#C7D1C6;font-family:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer;transition:background .15s,color .15s;}
+  .nav-btn:hover{background:rgba(255,255,255,0.06);color:#fff;}
+  .nav-btn.active{background:var(--pine-700);color:#fff;}
+  .nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0;flex-shrink:0;}
+  .nav-btn.active .nav-dot{opacity:1;color:var(--amber);}
+  .sidebar-foot{margin-top:auto;padding:12px 8px 0;font-size:12px;color:#7C8C7F;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;}
+  .sync-pill{display:inline-flex;align-items:center;gap:6px;margin-top:8px;}
+  .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:#5FAE7A;}
+
+  /* Main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--line);background:var(--paper);}
+  .topbar h1{font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;}
+  .topbar-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:9px 16px;border:1px solid transparent;cursor:pointer;transition:opacity .15s;}
+  .btn:hover{opacity:0.88;}
+  .btn-primary{background:var(--pine-800);color:#fff;}
+  .btn-outline{background:transparent;color:var(--ink);border-color:var(--line);}
+  .content{padding:28px 32px;overflow-y:auto;}
+  .section{display:none;}
+  .section.active{display:block;}
+
+  /* Cards / stats */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .stat-label{font-size:12px;color:var(--ink-soft);font-weight:500;text-transform:uppercase;letter-spacing:0.4px;}
+  .stat-value{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin-top:6px;}
+  .stat-note{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .panel-head h2{font-size:15px;font-weight:600;margin:0;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--ink-soft);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0.3px;padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge-booking{background:var(--blue-bg);color:var(--blue);}
+  .badge-site{background:var(--teal-bg);color:var(--teal);}
+  .badge-phone{background:var(--amber-bg);color:var(--amber-dark);}
+  .badge-confirmed{background:var(--teal-bg);color:var(--teal);}
+  .badge-pending{background:var(--amber-bg);color:var(--amber-dark);}
+
+  /* Calendar */
+  .cal-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+  .cal-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .cal-legend .sw{width:10px;height:10px;border-radius:3px;}
+  .cal-grid{display:grid;grid-template-columns:120px repeat(14,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:11px;}
+  .cal-grid .cell{background:var(--paper);padding:6px 4px;text-align:center;color:var(--ink-soft);}
+  .cal-grid .room-name{background:#FAF8F2;text-align:left;font-weight:500;color:var(--ink);padding:6px 10px;}
+  .cal-grid .head{background:#FAF8F2;font-weight:600;color:var(--ink-soft);}
+  .cal-grid .booked{background:var(--blue-bg);}
+  .cal-grid .direct{background:var(--teal-bg);}
+  .cal-grid .phone{background:var(--amber-bg);}
+
+  /* Rooms */
+  .room-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .room-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+  .room-card h3{margin:0 0 4px;font-size:15px;}
+  .room-card .price{font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:10px 0 2px;}
+  .room-card .price span{font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-soft);font-weight:400;}
+  .field-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid var(--line);}
+  input[type=text],input[type=number]{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:80px;text-align:right;}
+
+  .empty-note{font-size:13px;color:var(--ink-soft);padding:20px 0;text-align:center;}
+
+  @media(max-width:900px){
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .room-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Vila Silvia
+      <span>Admin · Sovata</span>
+    </div>
+    <nav id="nav">
+      <button class="nav-btn active" data-section="overview"><span class="nav-dot"></span>Overview</button>
+      <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
+      <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Reservations</button>
+      <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Rooms &amp; pricing</button>
+      <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Sync status</button>
+      <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Reports</button>
+    </nav>
+    <div class="sidebar-foot">
+      Connected via Beds24
+      <div class="sync-pill"><span class="dot"></span> Last sync 4 min ago</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="page-title">Overview</h1>
+        <div class="topbar-sub" id="page-sub">Today, all rooms</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline">Force sync</button>
+        <button class="btn btn-primary" onclick="showSection('reservations')">+ Add booking</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section class="section active" id="overview">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Occupancy today</div>
+            <div class="stat-value">78%</div>
+            <div class="stat-note">7 of 9 rooms occupied</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Arrivals today</div>
+            <div class="stat-value">3</div>
+            <div class="stat-note">2 via Booking.com, 1 direct</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Revenue this month</div>
+            <div class="stat-value">18,420 lei</div>
+            <div class="stat-note">↑ 12% vs last month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Sync status</div>
+            <div class="stat-value" style="color:var(--teal);font-size:18px;">Connected</div>
+            <div class="stat-note">Beds24 · 4 min ago</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Upcoming arrivals</h2>
+            <button class="btn btn-outline" onclick="showSection('reservations')">View all</button>
+          </div>
+          <table>
+            <tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Nights</th><th>Source</th><th>Status</th></tr>
+            <tr><td>Kovács Anna</td><td>Room 2</td><td>Today, 14:00</td><td>3</td><td><span class="badge badge-booking">Booking.com</span></td><td><span class="badge badge-confirmed">Confirmed</span></td></tr>
+            <tr><td>Marius Popescu</td><td>Room 5</td><td>Today, 15:30</td><td>2</td><td><span class="badge badge-phone">Phone</span></td><td><span class="badge badge-confirmed">Confirmed</span></td></tr>
+            <tr><td>Schmidt family</td><td>Apartament</td><td>Tomorrow</td><td>5</td><td><span class="badge badge-site">Direct site</span></td><td><span class="badge badge-pending">Pending</span></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- CALENDAR -->
+      <section class="section" id="calendar">
+        <div class="cal-legend">
+          <span><i class="sw" style="background:var(--blue-bg);border:1px solid var(--blue);"></i>Booking.com</span>
+          <span><i class="sw" style="background:var(--teal-bg);border:1px solid var(--teal);"></i>Direct website</span>
+          <span><i class="sw" style="background:var(--amber-bg);border:1px solid var(--amber);"></i>Phone / manual</span>
+        </div>
+        <div class="panel" style="overflow-x:auto;">
+          <div class="cal-grid" style="min-width:900px;">
+            <div class="cell head"></div>
+            <div class="cell head">21</div><div class="cell head">22</div><div class="cell head">23</div><div class="cell head">24</div>
+            <div class="cell head">25</div><div class="cell head">26</div><div class="cell head">27</div><div class="cell head">28</div>
+            <div class="cell head">29</div><div class="cell head">30</div><div class="cell head">31</div><div class="cell head">1</div>
+            <div class="cell head">2</div><div class="cell head">3</div>
+
+            <div class="room-name">Room 1</div>
+            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div><div class="cell"></div>
+            <div class="cell phone">●</div><div class="cell phone">●</div><div class="cell phone">●</div><div class="cell"></div>
+            <div class="cell"></div><div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div>
+            <div class="cell"></div><div class="cell"></div>
+
+            <div class="room-name">Room 2</div>
+            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell direct">●</div><div class="cell direct">●</div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell booked">●</div>
+            <div class="cell booked">●</div><div class="cell"></div>
+
+            <div class="room-name">Room 3</div>
+            <div class="cell"></div><div class="cell"></div><div class="cell phone">●</div><div class="cell phone">●</div>
+            <div class="cell phone">●</div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div>
+            <div class="cell"></div><div class="cell"></div>
+
+            <div class="room-name">Apartament</div>
+            <div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div>
+            <div class="cell direct">●</div><div class="cell"></div><div class="cell"></div><div class="cell booked">●</div>
+            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-soft);">Click any date range on a room row to add a manual booking or block dates. (Wired to <code>/api/bookings</code> once the backend is connected.)</p>
+      </section>
+
+      <!-- RESERVATIONS -->
+      <section class="section" id="reservations">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>All reservations</h2>
+            <button class="btn btn-primary">+ Add manual booking</button>
+          </div>
+          <table>
+            <tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Source</th><th>Status</th><th>Total</th></tr>
+            <tr><td>Kovács Anna</td><td>Room 2</td><td>21 Aug</td><td>24 Aug</td><td><span class="badge badge-booking">Booking.com</span></td><td><span class="badge badge-confirmed">Confirmed</span></td><td>1,240 lei</td></tr>
+            <tr><td>Marius Popescu</td><td>Room 5</td><td>21 Aug</td><td>23 Aug</td><td><span class="badge badge-phone">Phone</span></td><td><span class="badge badge-confirmed">Confirmed</span></td><td>760 lei</td></tr>
+            <tr><td>Schmidt family</td><td>Apartament</td><td>22 Aug</td><td>27 Aug</td><td><span class="badge badge-site">Direct site</span></td><td><span class="badge badge-pending">Pending</span></td><td>3,100 lei</td></tr>
+            <tr><td>Ionescu Radu</td><td>Room 1</td><td>25 Aug</td><td>28 Aug</td><td><span class="badge badge-phone">Phone</span></td><td><span class="badge badge-confirmed">Confirmed</span></td><td>1,020 lei</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- ROOMS & PRICING -->
+      <section class="section" id="rooms">
+        <div class="room-grid">
+          <div class="room-card">
+            <h3>Room 1 — Standard dublă</h3>
+            <div class="price">340 lei <span>/ night base</span></div>
+            <div class="field-row">Weekend rate <input type="number" value="390"></div>
+            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
+          </div>
+          <div class="room-card">
+            <h3>Room 2 — Standard dublă</h3>
+            <div class="price">340 lei <span>/ night base</span></div>
+            <div class="field-row">Weekend rate <input type="number" value="390"></div>
+            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
+          </div>
+          <div class="room-card">
+            <h3>Room 3 — Twin</h3>
+            <div class="price">310 lei <span>/ night base</span></div>
+            <div class="field-row">Weekend rate <input type="number" value="350"></div>
+            <div class="field-row">Min. stay (nights) <input type="number" value="1"></div>
+          </div>
+          <div class="room-card">
+            <h3>Apartament</h3>
+            <div class="price">620 lei <span>/ night base</span></div>
+            <div class="field-row">Weekend rate <input type="number" value="700"></div>
+            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
+          </div>
+        </div>
+        <div style="margin-top:18px;">
+          <button class="btn btn-primary">Save &amp; push to Booking.com</button>
+        </div>
+      </section>
+
+      <!-- SYNC STATUS -->
+      <section class="section" id="sync">
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="stat-card">
+            <div class="stat-label">Connection</div>
+            <div class="stat-value" style="color:var(--teal);font-size:18px;">● Healthy</div>
+            <div class="stat-note">Beds24 ↔ Booking.com</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Last successful sync</div>
+            <div class="stat-value" style="font-size:18px;">4 minutes ago</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Sync interval</div>
+            <div class="stat-value" style="font-size:18px;">Every 5 min</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Sync log</h2></div>
+          <table>
+            <tr><th>Time</th><th>Direction</th><th>Detail</th><th>Result</th></tr>
+            <tr><td>14:32</td><td>Booking.com → site</td><td>Room 2 availability updated (3 dates)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:27</td><td>Site → Booking.com</td><td>Room 1 price updated</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:22</td><td>Booking.com → site</td><td>New booking imported (Kovács Anna)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:17</td><td>Booking.com → site</td><td>Availability sync</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="section" id="reports">
+        <div class="panel">
+          <div class="panel-head"><h2>Revenue by source — this month</h2></div>
+          <table>
+            <tr><th>Source</th><th>Bookings</th><th>Nights</th><th>Revenue</th></tr>
+            <tr><td><span class="badge badge-booking">Booking.com</span></td><td>24</td><td>61</td><td>11,240 lei</td></tr>
+            <tr><td><span class="badge badge-site">Direct site</span></td><td>6</td><td>19</td><td>3,980 lei</td></tr>
+            <tr><td><span class="badge badge-phone">Phone / manual</span></td><td>9</td><td>22</td><td>3,200 lei</td></tr>
+          </table>
+        </div>
+        <div class="panel">
+          <div class="empty-note">Occupancy trend chart will render here once connected to real booking history.</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Section titles + subtitles shown in the topbar per section
+  const meta = {
+    overview:     ["Overview", "Today, all rooms"],
+    calendar:     ["Calendar", "Aug 21 – Sep 3"],
+    reservations: ["Reservations", "All bookings across every source"],
+    rooms:        ["Rooms & pricing", "4 room types"],
+    sync:         ["Sync status", "Beds24 ↔ Booking.com"],
+    reports:      ["Reports", "This month"]
+  };
+
+  function showSection(id){
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-btn[data-section="${id}"]`).classList.add('active');
+    document.getElementById('page-title').textContent = meta[id][0];
+    document.getElementById('page-sub').textContent = meta[id][1];
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => showSection(btn.dataset.section));
+  });
+
+  // TODO: replace mock table/card data above with fetch() calls to your backend, e.g.:
+  // fetch('/api/bookings').then(r => r.json()).then(renderReservations);
+  // fetch('/api/rooms').then(r => r.json()).then(renderRooms);
+  // fetch('/api/sync-log').then(r => r.json()).then(renderSyncLog);
+</script>
+
+</body>
+</html>

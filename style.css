@@ -1,0 +1,114 @@
+:root{
+  --pine-900:#12261D;
+  --pine-800:#1B3A2B;
+  --pine-700:#26503C;
+  --cream:#F5F1E7;
+  --paper:#FFFFFF;
+  --ink:#1E241F;
+  --ink-soft:#5B685E;
+  --line:#E4DFD1;
+  --amber:#B4823A;
+  --amber-dark:#8A6329;
+  --amber-bg:#F4E9D5;
+  --blue:#3A6FA0;
+  --blue-bg:#E1EBF4;
+  --radius:12px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);line-height:1.6;}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;margin:0;}
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
+
+/* Header */
+header{position:sticky;top:0;z-index:50;background:rgba(245,241,231,0.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-weight:600;font-size:19px;color:var(--pine-900);}
+.logo img{height:34px;width:auto;}
+nav.main-nav{display:flex;align-items:center;gap:28px;}
+nav.main-nav a{font-size:14px;font-weight:500;color:var(--ink);}
+nav.main-nav a:hover{color:var(--amber-dark);}
+.header-actions{display:flex;align-items:center;gap:14px;}
+.lang-switch{display:flex;gap:6px;font-size:12px;font-weight:600;}
+.lang-switch a{padding:3px 7px;border-radius:6px;color:var(--ink-soft);}
+.lang-switch a.active{background:var(--pine-800);color:#fff;}
+.btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:10px 18px;border:1px solid transparent;cursor:pointer;display:inline-block;transition:opacity .15s;}
+.btn:hover{opacity:0.88;}
+.btn-primary{background:var(--amber);color:#fff;}
+.btn-outline{background:transparent;color:var(--pine-900);border-color:var(--pine-900);}
+.btn-light{background:#fff;color:var(--pine-900);}
+.menu-toggle{display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--pine-900);}
+
+/* Hero */
+.hero{position:relative;display:grid;grid-template-columns:1.1fr 0.9fr;gap:0;min-height:560px;background:var(--pine-900);color:#fff;overflow:hidden;}
+.hero-copy{padding:80px 48px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2;}
+.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:14px;}
+.hero-copy h1{font-size:44px;line-height:1.15;color:#fff;margin-bottom:18px;}
+.hero-copy p{font-size:16px;color:#D8DED7;max-width:440px;margin-bottom:28px;}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;}
+.hero-img{position:relative;}
+.hero-img img{width:100%;height:100%;object-fit:cover;min-height:560px;}
+.hero-img::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(18,38,29,0.55), transparent 40%);}
+
+/* Sections */
+section{padding:72px 0;}
+.section-head{max-width:640px;margin-bottom:40px;}
+.section-head .eyebrow{color:var(--amber-dark);}
+.section-head h2{font-size:30px;color:var(--pine-900);margin-bottom:10px;}
+.section-head p{color:var(--ink-soft);font-size:15px;}
+
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;}
+.about-grid img{border-radius:var(--radius);}
+.about-grid p{color:var(--ink-soft);margin-bottom:16px;font-size:15px;}
+
+.facility-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+.facility-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:24px 20px;text-align:left;}
+.facility-card .icon{width:36px;height:36px;color:var(--amber-dark);margin-bottom:14px;}
+.facility-card h3{font-size:15px;color:var(--pine-900);margin-bottom:6px;}
+.facility-card p{font-size:13px;color:var(--ink-soft);margin:0;}
+
+.lakes-section{background:var(--pine-900);color:#fff;}
+.lakes-section .section-head h2{color:#fff;}
+.lakes-section .section-head p{color:#B9C4BA;}
+.lake-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
+.lake-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius);padding:18px;}
+.lake-card .dist{font-family:'Fraunces',serif;font-size:22px;color:var(--amber);}
+.lake-card .name{font-size:13px;color:#D8DED7;margin-top:4px;}
+.far-list{display:flex;flex-wrap:wrap;gap:24px;font-size:14px;color:#D8DED7;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);}
+.far-list b{color:#fff;}
+
+.gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:160px;gap:12px;}
+.gallery-grid img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+.gallery-grid a:nth-child(1){grid-column:span 2;grid-row:span 2;}
+.gallery-grid a{display:block;overflow:hidden;border-radius:8px;}
+.gallery-grid a:nth-child(1) img{height:100%;}
+
+.booking-panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+.booking-panel h2{font-size:24px;color:var(--pine-900);margin-bottom:14px;}
+.booking-panel .widget-slot{background:var(--cream);border:1.5px dashed var(--line);border-radius:10px;padding:32px;text-align:center;color:var(--ink-soft);font-size:13px;}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+.info-row span:first-child{color:var(--ink-soft);}
+.policy-list{font-size:13px;color:var(--ink-soft);margin-top:16px;}
+.policy-list li{margin-bottom:6px;}
+
+footer{background:var(--pine-900);color:#D8DED7;padding:56px 0 28px;font-size:13px;}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.2fr;gap:32px;margin-bottom:36px;}
+.footer-grid h4{color:#fff;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;}
+.footer-grid a{display:block;color:#B9C4BA;margin-bottom:8px;}
+.footer-grid a:hover{color:#fff;}
+.footer-bottom{border-top:1px solid rgba(255,255,255,0.12);padding-top:20px;display:flex;justify-content:space-between;color:#8FA495;flex-wrap:wrap;gap:10px;}
+
+@media(max-width:920px){
+  .hero{grid-template-columns:1fr;}
+  .hero-img{min-height:320px;}
+  .hero-img img{min-height:320px;}
+  .about-grid{grid-template-columns:1fr;}
+  .facility-grid{grid-template-columns:repeat(2,1fr);}
+  .lake-grid{grid-template-columns:repeat(2,1fr);}
+  .gallery-grid{grid-template-columns:repeat(2,1fr);}
+  .booking-panel{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+  nav.main-nav{display:none;}
+  .menu-toggle{display:block;}
+}
