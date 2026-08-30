@@ -750,6 +750,19 @@
 
   function assignRoom(type, checkin, checkout, excludeId){
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+
+    // Room continuation: if a room of this type frees up exactly on this
+    // guest's check-in date (a same-day turnover), reuse that room instead
+    // of scattering back-to-back bookings across different rooms.
+    const continuationCandidates = pool.filter(num => {
+      const freesUpHere = reservations.some(r =>
+        r.id !== excludeId && r.roomNumber === num && r.status !== 'cancelled' &&
+        parseLocalDate(r.checkout).getTime() === parseLocalDate(checkin).getTime()
+      );
+      return freesUpHere && !roomHasConflict(num, checkin, checkout, excludeId);
+    });
+    if (continuationCandidates.length) return continuationCandidates[0];
+
     for (const num of pool) {
       if (!roomHasConflict(num, checkin, checkout, excludeId)) return num;
     }
