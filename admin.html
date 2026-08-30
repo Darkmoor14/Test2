@@ -139,6 +139,10 @@
   .modal label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:12px 0 4px;}
   .modal input,.modal select{width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 10px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
+  .room-line{display:flex;gap:8px;align-items:center;margin-top:6px;}
+  .room-line select{flex:1;}
+  .room-line button{flex-shrink:0;background:var(--red-bg);color:var(--red);border:none;border-radius:6px;width:28px;height:32px;cursor:pointer;font-size:14px;}
+  .multi-room-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--pine-700);background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:2px 8px;margin-left:6px;}
 
   .res-card.status-cancelled{border-left-color:var(--red);opacity:0.85;}
   .res-status-label.status-cancelled{color:var(--red);}
@@ -465,15 +469,13 @@
     <input type="text" id="f-guest" placeholder="e.g. Ionescu Radu">
     <label>Phone number</label>
     <input type="text" id="f-phone" placeholder="+40 7...">
-    <label>Room type</label>
-    <select id="f-room">
-      <option value="Standard">Standard</option>
-      <option value="Apartament">Apartament</option>
-    </select>
     <label>Check-in</label>
     <input type="date" id="f-checkin">
     <label>Check-out</label>
     <input type="date" id="f-checkout">
+    <label>Room(s)</label>
+    <div id="f-room-lines"></div>
+    <button type="button" class="btn btn-outline" style="margin-top:8px;font-size:12px;padding:6px 12px;" onclick="addRoomLine()">+ Add another room</button>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeAddBooking()">Cancel</button>
       <button class="btn btn-primary" onclick="submitAddBooking()">Add reservation</button>
@@ -791,11 +793,16 @@
       }
     }
 
+    const linked = linkedReservations(r);
+    const linkedBadge = linked.length > 1
+      ? `<span class="multi-room-badge" title="Booked together: ${linked.map(x => 'Nr. ' + x.roomNumber).join(', ')}">🔗 ${linked.length} rooms</span>`
+      : '';
+
     return `
       <div class="res-card ${statusClass}">
         <button class="res-edit-btn" onclick="openEditReservation(${r.id})" title="Edit this reservation">✎</button>
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
-        <div class="res-guest">${r.guest}</div>
+        <div class="res-guest">${r.guest}${linkedBadge}</div>
         <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
         <div class="res-line">📞 ${r.phone}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
@@ -916,8 +923,28 @@
     renderReservations();
   }
 
+  function roomLineHTML(){
+    return `<div class="room-line">
+      <select class="f-room-type">
+        <option value="Standard">Standard</option>
+        <option value="Apartament">Apartament</option>
+      </select>
+      <button type="button" onclick="removeRoomLine(this)" title="Remove this room">✕</button>
+    </div>`;
+  }
+
+  function addRoomLine(){
+    document.getElementById('f-room-lines').insertAdjacentHTML('beforeend', roomLineHTML());
+  }
+
+  function removeRoomLine(btn){
+    const lines = document.querySelectorAll('#f-room-lines .room-line');
+    if (lines.length > 1) btn.closest('.room-line').remove(); // always keep at least one room
+  }
+
   function openAddBooking(){
     showSection('reservations');
+    document.getElementById('f-room-lines').innerHTML = roomLineHTML(); // reset to a single room line
     document.getElementById('add-booking-modal').classList.add('open');
     document.body.classList.add('modal-open');
   }
@@ -928,26 +955,45 @@
   function submitAddBooking(){
     const guest = document.getElementById('f-guest').value.trim();
     const phone = document.getElementById('f-phone').value.trim();
-    const room = document.getElementById('f-room').value;
     const checkin = document.getElementById('f-checkin').value;
     const checkout = document.getElementById('f-checkout').value;
+    const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
     if (!guest || !checkin || !checkout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
 
-    const roomNumber = assignRoom(room, checkin, checkout);
-    if (!roomNumber) { alert(`No ${room} rooms are free for those dates.`); return; }
+    // Assign a room for each line one at a time, so the 2nd/3rd room
+    // never gets offered the same number as the one just taken.
+    const assigned = [];
+    const createdIds = [];
+    for (const room of roomTypes) {
+      const roomNumber = assignRoom(room, checkin, checkout);
+      if (!roomNumber) {
+        // Roll back any rooms already created for this booking — never leave orphans.
+        reservations = reservations.filter(r => !createdIds.includes(r.id));
+        alert(`No ${room} rooms are free for those dates, so this booking wasn't created. Adjust the dates or room mix and try again.`);
+        return;
+      }
+      const newId = Date.now() + assigned.length;
+      assigned.push({ room, roomNumber });
+      createdIds.push(newId);
+      // Reserve it immediately so the next loop iteration sees it as taken.
+      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null });
+    }
 
-    reservations.push({
-      id: Date.now(),
-      guest, phone, room, roomNumber,
-      source: 'direct', // manual entries are always "Direct"
-      status: 'reserved',
-      checkin, checkout, price: 0
-    });
-    // TODO: POST /api/bookings { guest, phone, room, roomNumber, source:'direct', checkin, checkout }
+    // Link all the just-created rows together if more than one room was booked.
+    if (assigned.length > 1) {
+      const groupId = 'grp' + Date.now();
+      const justAdded = reservations.slice(-assigned.length);
+      justAdded.forEach(r => r.groupId = groupId);
+    }
+    // TODO: POST /api/bookings — one call per room, sharing a groupId when >1 room
 
     closeAddBooking();
     ['f-guest','f-phone','f-checkin','f-checkout'].forEach(id => document.getElementById(id).value = '');
     showResTab('active');
+  }
+
+  function linkedReservations(r){
+    return r.groupId ? reservations.filter(x => x.groupId === r.groupId) : [r];
   }
 
   // ---------------------------------------------------------------
