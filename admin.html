@@ -178,6 +178,7 @@
   .gantt-daycell.month-start{border-left:2px solid var(--amber);}
   .gantt-daycell.head.month-start{color:var(--amber-dark);font-weight:700;}
   .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;}
+  .gantt-bar.maintenance{background:repeating-linear-gradient(45deg, #8a8f89, #8a8f89 6px, #767b75 6px, #767b75 12px);justify-content:center;}
   .gantt-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .gantt-nav select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
 
@@ -369,6 +370,19 @@
             <tbody id="minibar-pricing-table"></tbody>
           </table>
         </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Blocări pentru întreținere</h2>
+            <button class="btn btn-primary" onclick="openAddMaintenance()">+ Blochează o cameră</button>
+          </div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">O cameră blocată aici este exclusă automat din rezervări noi și din prelungiri, pentru perioada aleasă.</p>
+          <table>
+            <tr><th>Cameră</th><th>De la</th><th>Până la</th><th>Motiv</th><th></th></tr>
+            <tbody id="maintenance-table"></tbody>
+          </table>
+          <p class="empty-note" id="maintenance-empty" style="display:none;">Nicio blocare activă în acest moment.</p>
+        </div>
       </section>
 
       <!-- SYNC STATUS -->
@@ -486,6 +500,24 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeAddExpense()">Anulează</button>
       <button class="btn btn-primary" onclick="submitAddExpense()">Adaugă cheltuială</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-maintenance-modal">
+  <div class="modal">
+    <h2>Blochează o cameră</h2>
+    <label>Cameră</label>
+    <select id="m-room"></select>
+    <label>De la</label>
+    <input type="date" id="m-from">
+    <label>Până la</label>
+    <input type="date" id="m-to">
+    <label>Motiv (opțional)</label>
+    <input type="text" id="m-reason" placeholder="ex: AC defect, zugrăvit">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddMaintenance()">Anulează</button>
+      <button class="btn btn-primary" onclick="submitAddMaintenance()">Blochează</button>
     </div>
   </div>
 </div>
@@ -737,19 +769,71 @@
     { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   roomNumber: 6, source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340,  extras: [] }
   ];
 
-  // Auto-assign the first free room of the requested type for the given date range.
+  // ---------------------------------------------------------------
+  // MAINTENANCE BLOCKS — a room marked out of service for a date range
+  // (repairs, painting, etc.). Excluded from auto-assignment and shown
+  // on the Gantt calendar, without needing a fake reservation for it.
+  // TODO: replace with fetch('/api/maintenance') once a backend exists.
+  // ---------------------------------------------------------------
+  let maintenanceBlocks = [];
+
+  // Auto-assigns a room for the requested type/dates — tries a repeat
+  // guest's usual room, then room continuation, then first free room.
   // A cancelled reservation is excluded here, so cancelling a stay
   // automatically frees its room for new bookings over the same dates.
-  function roomHasConflict(roomNumber, checkin, checkout, excludeId){
+  function maintenanceConflict(roomNumber, checkin, checkout){
     const s = parseLocalDate(checkin), e = parseLocalDate(checkout);
-    return reservations.some(r =>
-      r.id !== excludeId && r.roomNumber === roomNumber && r.status !== 'cancelled' &&
-      s < parseLocalDate(r.checkout) && parseLocalDate(r.checkin) < e
+    return maintenanceBlocks.find(m =>
+      m.roomNumber === roomNumber && s < parseLocalDate(m.to) && parseLocalDate(m.from) < e
     );
   }
 
-  function assignRoom(type, checkin, checkout, excludeId){
+  function roomHasConflict(roomNumber, checkin, checkout, excludeId){
+    const s = parseLocalDate(checkin), e = parseLocalDate(checkout);
+    const reservationConflict = reservations.some(r =>
+      r.id !== excludeId && r.roomNumber === roomNumber && r.status !== 'cancelled' &&
+      s < parseLocalDate(r.checkout) && parseLocalDate(r.checkin) < e
+    );
+    if (reservationConflict) return true;
+    return !!maintenanceConflict(roomNumber, checkin, checkout);
+  }
+
+  // If this guest has stayed in this room type before, prefer giving them
+  // the same room again (their most recent stay first), if it's free.
+  function findRepeatGuestRoom(guestName, type, checkin, checkout, excludeId){
+    const nameKey = (guestName || '').trim().toLowerCase();
+    if (!nameKey) return null;
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+    const pastStays = reservations
+      .filter(r => r.id !== excludeId && r.status !== 'cancelled' && r.room === type && r.guest.trim().toLowerCase() === nameKey)
+      .sort((a, b) => parseLocalDate(b.checkin) - parseLocalDate(a.checkin));
+    for (const stay of pastStays) {
+      if (pool.includes(stay.roomNumber) && !roomHasConflict(stay.roomNumber, checkin, checkout, excludeId)) {
+        return stay.roomNumber;
+      }
+    }
+    return null;
+  }
+
+  // Finds a contiguous run of `count` free room numbers within a type's
+  // pool, so a group/family booking multiple rooms at once ends up next
+  // to each other instead of scattered. Returns null if no block fits.
+  function findAdjacentBlock(pool, count, checkin, checkout){
+    if (count <= 1) return null;
+    for (let i = 0; i <= pool.length - count; i++) {
+      const block = pool.slice(i, i + count);
+      if (block.every(num => !roomHasConflict(num, checkin, checkout))) return block;
+    }
+    return null;
+  }
+
+  function assignRoom(type, checkin, checkout, excludeId, guestName){
+    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+
+    if (guestName) {
+      const repeatRoom = findRepeatGuestRoom(guestName, type, checkin, checkout, excludeId);
+      if (repeatRoom) return repeatRoom;
+    }
 
     // Room continuation: if a room of this type frees up exactly on this
     // guest's check-in date (a same-day turnover), reuse that room instead
@@ -845,6 +929,12 @@
       const blocker = roomBlocker(r.roomNumber, r.checkin, input, r.id);
       if (blocker) {
         alert(`Nu se poate prelungi — Camera ${r.roomNumber} este deja rezervată de ${blocker.guest} începând cu ${fmtDate(blocker.checkin)}. Poți muta acest oaspete la o altă cameră disponibilă, folosind Editează.`);
+        return;
+      }
+
+      const maint = maintenanceConflict(r.roomNumber, r.checkin, input);
+      if (maint) {
+        alert(`Nu se poate prelungi — Camera ${r.roomNumber} este blocată pentru întreținere (${maint.reason || 'motiv nespecificat'}) în perioada ${fmtDate(maint.from)} – ${fmtDate(maint.to)}.`);
         return;
       }
 
@@ -990,7 +1080,15 @@
                   style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
       }).join('');
 
-      scrollHTML += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${cells}${bars}</div>`;
+      const maintBars = maintenanceBlocks.filter(m => m.roomNumber === room.num).map(m => {
+        const s = Math.max(0, dayOffset(m.from, first));
+        const e = Math.min(days, dayOffset(m.to, first));
+        if (e <= s) return '';
+        return `<div class="gantt-bar maintenance" title="Întreținere: ${m.reason || 'motiv nespecificat'} (${fmtDate(m.from)} – ${fmtDate(m.to)})"
+                  style="grid-column:${s+1} / ${e+1};grid-row:1;">🔧</div>`;
+      }).join('');
+
+      scrollHTML += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${cells}${bars}${maintBars}</div>`;
     });
 
     el.innerHTML = `<div class="gantt-wrap">
@@ -1139,6 +1237,7 @@
     renderGantt();
     renderPricingTables();
     renderInventoryTable();
+    renderMaintenanceTable();
   }
 
   function markPaid(id){
@@ -1206,12 +1305,26 @@
     const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
     if (!guest || !checkin || !checkout) { alert('Te rugăm completează numele oaspetelui, data de check-in și data de check-out.'); return; }
 
+    // If 2+ rooms of the same type are being booked together, try to find
+    // a contiguous block of free room numbers first, so a group ends up
+    // next to each other instead of scattered across the building.
+    const typeCounts = {};
+    roomTypes.forEach(t => { typeCounts[t] = (typeCounts[t] || 0) + 1; });
+    const adjacentPool = {}; // type -> array of pre-picked room numbers to consume in order
+    Object.keys(typeCounts).forEach(type => {
+      if (typeCounts[type] > 1) {
+        const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+        const block = findAdjacentBlock(pool, typeCounts[type], checkin, checkout);
+        if (block) adjacentPool[type] = block.slice();
+      }
+    });
+
     // Assign a room for each line one at a time, so the 2nd/3rd room
     // never gets offered the same number as the one just taken.
     const assigned = [];
     const createdIds = [];
     for (const room of roomTypes) {
-      const roomNumber = assignRoom(room, checkin, checkout);
+      let roomNumber = (adjacentPool[room] && adjacentPool[room].length) ? adjacentPool[room].shift() : assignRoom(room, checkin, checkout, undefined, guest);
       if (!roomNumber) {
         // Roll back any rooms already created for this booking — never leave orphans.
         reservations = reservations.filter(r => !createdIds.includes(r.id));
@@ -1291,6 +1404,68 @@
       // TODO: PATCH /api/catalog/minibar/{id} { stock }
       renderInventoryTable();
     }
+  }
+
+  // ---------------------------------------------------------------
+  // MAINTENANCE BLOCKS — mark a room out of service for a date range.
+  // ---------------------------------------------------------------
+  function allRoomsList(){
+    const rooms = [];
+    for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
+    return rooms;
+  }
+
+  function renderMaintenanceTable(){
+    const tbody = document.getElementById('maintenance-table');
+    if (!tbody) return;
+    const sorted = [...maintenanceBlocks].sort((a, b) => parseLocalDate(a.from) - parseLocalDate(b.from));
+    tbody.innerHTML = sorted.map(m => `
+      <tr>
+        <td>Nr. ${m.roomNumber}</td>
+        <td>${fmtDate(m.from)}</td>
+        <td>${fmtDate(m.to)}</td>
+        <td>${m.reason || '—'}</td>
+        <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px;" onclick="removeMaintenance(${m.id})">Șterge</button></td>
+      </tr>`).join('');
+    const emptyEl = document.getElementById('maintenance-empty');
+    if (emptyEl) emptyEl.style.display = sorted.length ? 'none' : 'block';
+  }
+
+  function openAddMaintenance(){
+    const sel = document.getElementById('m-room');
+    sel.innerHTML = allRoomsList().map(r => `<option value="${r.num}">Nr. ${r.num} · ${r.type}</option>`).join('');
+    document.getElementById('add-maintenance-modal').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeAddMaintenance(){
+    document.getElementById('add-maintenance-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function submitAddMaintenance(){
+    const roomNumber = parseInt(document.getElementById('m-room').value, 10);
+    const from = document.getElementById('m-from').value;
+    const to = document.getElementById('m-to').value;
+    const reason = document.getElementById('m-reason').value.trim();
+    if (!from || !to) { alert('Te rugăm completează perioada de blocare.'); return; }
+    if (parseLocalDate(to) <= parseLocalDate(from)) { alert('Data de final trebuie să fie după data de început.'); return; }
+
+    maintenanceBlocks.push({ id: Date.now(), roomNumber, from, to, reason });
+    // TODO: POST /api/maintenance { roomNumber, from, to, reason }
+
+    closeAddMaintenance();
+    document.getElementById('m-reason').value = '';
+    renderMaintenanceTable();
+    renderGantt();
+  }
+
+  function removeMaintenance(id){
+    if (!confirm('Elimini această blocare pentru întreținere?')) return;
+    maintenanceBlocks = maintenanceBlocks.filter(m => m.id !== id);
+    // TODO: DELETE /api/maintenance/{id}
+    renderMaintenanceTable();
+    renderGantt();
   }
 
   // ---------------------------------------------------------------
