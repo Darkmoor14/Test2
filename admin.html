@@ -143,6 +143,10 @@
   .room-line select{flex:1;}
   .room-line button{flex-shrink:0;background:var(--red-bg);color:var(--red);border:none;border-radius:6px;width:28px;height:32px;cursor:pointer;font-size:14px;}
   .multi-room-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--pine-700);background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:2px 8px;margin-left:6px;}
+  .extra-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);}
+  .extra-row button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:2px 6px;}
+  .res-extras-summary{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .stock-low{color:var(--red);font-weight:700;}
 
   .res-card.status-cancelled{border-left-color:var(--red);opacity:0.85;}
   .res-status-label.status-cancelled{color:var(--red);}
@@ -229,6 +233,7 @@
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
       <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Reservations</button>
       <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Rooms &amp; pricing</button>
+      <button class="nav-btn" data-section="inventory"><span class="nav-dot"></span>Inventory</button>
       <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Sync status</button>
       <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Reports</button>
     </nav>
@@ -347,8 +352,38 @@
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
           </div>
         </div>
-        <div style="margin-top:18px;">
+        <div style="margin-top:18px;margin-bottom:28px;">
           <button class="btn btn-primary">Save &amp; push to Booking.com</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Services pricing</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">These prices are used automatically when you add a service to a guest's reservation.</p>
+          <table>
+            <tr><th>Service</th><th>Price (lei)</th></tr>
+            <tbody id="services-pricing-table"></tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Minibar pricing</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock levels are managed on the Inventory page — prices here apply everywhere, including there.</p>
+          <table>
+            <tr><th>Item</th><th>Price (lei)</th></tr>
+            <tbody id="minibar-pricing-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- INVENTORY -->
+      <section class="section" id="inventory">
+        <div class="panel">
+          <div class="panel-head"><h2>Minibar stock</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock goes down automatically when you add a minibar item to a guest's reservation. Restock here after refilling rooms.</p>
+          <table>
+            <tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr>
+            <tbody id="inventory-table"></tbody>
+          </table>
         </div>
       </section>
 
@@ -513,8 +548,23 @@
       <option value="checkedin">Checked in</option>
       <option value="cancelled">Cancelled</option>
     </select>
-    <label>Price (lei)</label>
+    <label>Room price (lei)</label>
     <input type="number" id="e2-price">
+
+    <label style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">Extras for this guest</label>
+    <div id="e2-extras-list" style="font-size:13px;"></div>
+
+    <div style="display:flex;gap:6px;margin-top:10px;align-items:center;">
+      <select id="e2-service-select" style="flex:1;"></select>
+      <input type="number" id="e2-service-qty" value="1" min="1" style="width:52px;">
+      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('service')">+ Add</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
+      <select id="e2-minibar-select" style="flex:1;"></select>
+      <input type="number" id="e2-minibar-qty" value="1" min="1" style="width:52px;">
+      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('minibar')">+ Add</button>
+    </div>
+
     <div class="modal-actions" style="justify-content:space-between;">
       <button class="btn btn-outline" style="color:var(--red);border-color:var(--red);" onclick="deleteReservationConfirm()">Delete</button>
       <div style="display:flex;gap:10px;">
@@ -534,6 +584,7 @@
     calendar:     ["Calendar", "Aug 21 – Sep 3"],
     reservations: ["Reservations", "All bookings across every source"],
     rooms:        ["Rooms & pricing", "4 room types"],
+    inventory:    ["Inventory", "Minibar stock"],
     sync:         ["Sync status", "Beds24 ↔ Booking.com"],
     reports:      ["Reports", "This month"]
   };
@@ -546,7 +597,7 @@
     document.getElementById('page-title').textContent = meta[id][0];
     document.getElementById('page-sub').textContent = meta[id][1];
 
-    const hideAddBooking = (id === 'reports' || id === 'sync');
+    const hideAddBooking = (id === 'reports' || id === 'sync' || id === 'rooms' || id === 'inventory');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
     document.querySelector('.content').scrollTop = 0;
@@ -632,14 +683,40 @@
   const STANDARD_ROOMS = [2,3,4,5,6,7,8];
   const APARTMENT_ROOMS = [1,9];
 
+  // ---------------------------------------------------------------
+  // PRICING CATALOG — single source of truth for service and minibar
+  // prices. Edited on the Rooms & Pricing page; stock (minibar only)
+  // is edited on the Inventory page. Both read from this same object.
+  // TODO: replace with fetch('/api/catalog') once a backend exists.
+  // ---------------------------------------------------------------
+  let catalog = {
+    services: [
+      { id: 'massage', name: 'Massage', price: 120 },
+      { id: 'sauna',   name: 'Sauna',   price: 80  }
+    ],
+    minibar: [
+      { id: 'cola',   name: 'Cola',   price: 10, stock: 24 },
+      { id: 'water',  name: 'Water',  price: 6,  stock: 30 },
+      { id: 'snacks', name: 'Snacks', price: 12, stock: 20 }
+    ]
+  };
+
+  function findCatalogItem(type, id){
+    return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
+  }
+
+  function extrasTotal(r){
+    return (r.extras || []).reduce((sum, e) => sum + e.price * e.qty, 0);
+  }
+
   let reservations = [
-    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240 },
-    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   roomNumber: 3, source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680  },
-    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", roomNumber: 1, source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100 },
-    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   roomNumber: 4, source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020 },
-    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", roomNumber: 9, source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3), price: 1860 },
-    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   roomNumber: 5, source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8), price: 700  },
-    { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   roomNumber: 6, source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340  }
+    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240, extras: [{catalogId:'sauna', type:'service', name:'Sauna', price:80, qty:1}] },
+    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   roomNumber: 3, source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680,  extras: [] },
+    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", roomNumber: 1, source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100, extras: [] },
+    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   roomNumber: 4, source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020, extras: [] },
+    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", roomNumber: 9, source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3), price: 1860, extras: [{catalogId:'cola', type:'minibar', name:'Cola', price:10, qty:2}] },
+    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   roomNumber: 5, source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8), price: 700,  extras: [] },
+    { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   roomNumber: 6, source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340,  extras: [] }
   ];
 
   // Auto-assign the first free room of the requested type for the given date range.
@@ -798,6 +875,11 @@
       ? `<span class="multi-room-badge" title="Booked together: ${linked.map(x => 'Nr. ' + x.roomNumber).join(', ')}">🔗 ${linked.length} rooms</span>`
       : '';
 
+    const extrasSum = extrasTotal(r);
+    const extrasLine = extrasSum > 0
+      ? `<div class="res-extras-summary">+ ${(r.extras||[]).length} extra${r.extras.length>1?'s':''} (${extrasSum} lei)</div>`
+      : '';
+
     return `
       <div class="res-card ${statusClass}">
         <button class="res-edit-btn" onclick="openEditReservation(${r.id})" title="Edit this reservation">✎</button>
@@ -806,6 +888,7 @@
         <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
         <div class="res-line">📞 ${r.phone}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
+        ${extrasLine}
         <div class="res-status-label ${statusClass}">${statusText}</div>
         <div class="res-actions">${actions}</div>
       </div>`;
@@ -893,6 +976,8 @@
 
     renderReports();
     renderGantt();
+    renderPricingTables();
+    renderInventoryTable();
   }
 
   function markPaid(id){
@@ -976,7 +1061,7 @@
       assigned.push({ room, roomNumber });
       createdIds.push(newId);
       // Reserve it immediately so the next loop iteration sees it as taken.
-      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null });
+      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
     }
 
     // Link all the just-created rows together if more than one room was booked.
@@ -994,6 +1079,57 @@
 
   function linkedReservations(r){
     return r.groupId ? reservations.filter(x => x.groupId === r.groupId) : [r];
+  }
+
+  // ---------------------------------------------------------------
+  // PRICING & INVENTORY — render the catalog tables on the Rooms &
+  // Pricing page and the Inventory page. Editing a price updates the
+  // one shared catalog object, so it's reflected everywhere at once.
+  // ---------------------------------------------------------------
+  function renderPricingTables(){
+    const svcEl = document.getElementById('services-pricing-table');
+    if (svcEl) {
+      svcEl.innerHTML = catalog.services.map(s => `
+        <tr><td>${s.name}</td><td><input type="number" value="${s.price}" style="width:80px;" onchange="updateCatalogPrice('service','${s.id}',this.value)"></td></tr>
+      `).join('');
+    }
+    const mbEl = document.getElementById('minibar-pricing-table');
+    if (mbEl) {
+      mbEl.innerHTML = catalog.minibar.map(m => `
+        <tr><td>${m.name}</td><td><input type="number" value="${m.price}" style="width:80px;" onchange="updateCatalogPrice('minibar','${m.id}',this.value)"></td></tr>
+      `).join('');
+    }
+  }
+
+  function updateCatalogPrice(type, id, value){
+    const item = findCatalogItem(type, id);
+    if (item) item.price = parseFloat(value) || 0;
+    // TODO: PATCH /api/catalog/{type}/{id} { price }
+    renderReservations(); // refreshes the Extras dropdowns' prices too
+  }
+
+  function renderInventoryTable(){
+    const el = document.getElementById('inventory-table');
+    if (!el) return;
+    el.innerHTML = catalog.minibar.map(m => `
+      <tr>
+        <td>${m.name}</td>
+        <td>${m.price} lei</td>
+        <td class="${m.stock <= 5 ? 'stock-low' : ''}">${m.stock}${m.stock <= 5 ? ' — low!' : ''}</td>
+        <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px;" onclick="restockItem('${m.id}')">+ Restock</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function restockItem(id){
+    const item = findCatalogItem('minibar', id);
+    if (!item) return;
+    const qty = parseInt(prompt(`Add how many ${item.name} to stock?`, '10'), 10);
+    if (qty > 0) {
+      item.stock += qty;
+      // TODO: PATCH /api/catalog/minibar/{id} { stock }
+      renderInventoryTable();
+    }
   }
 
   // ---------------------------------------------------------------
@@ -1029,14 +1165,73 @@
     document.getElementById('e2-source').value = r.source;
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
+
+    document.getElementById('e2-service-select').innerHTML = catalog.services.map(s => `<option value="${s.id}">${s.name} — ${s.price} lei</option>`).join('');
+    document.getElementById('e2-minibar-select').innerHTML = catalog.minibar.map(m => `<option value="${m.id}" ${m.stock<=0?'disabled':''}>${m.name} — ${m.price} lei (${m.stock} in stock)</option>`).join('');
+    renderEditExtras();
+
     document.getElementById('edit-reservation-modal').classList.add('open');
     document.body.classList.add('modal-open');
+  }
+
+  function renderEditExtras(){
+    const r = reservations.find(x => x.id === editingId);
+    const el = document.getElementById('e2-extras-list');
+    if (!r || !el) return;
+    if (!r.extras || r.extras.length === 0) {
+      el.innerHTML = `<p style="font-size:12px;color:var(--ink-soft);">No extras added yet.</p>`;
+      return;
+    }
+    el.innerHTML = r.extras.map((e, i) => `
+      <div class="extra-row">
+        <span>${e.name} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
+        <button type="button" onclick="removeExtraFromEditing(${i})">Remove</button>
+      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Extras total</span><span>${extrasTotal(r)} lei</span></div>`;
+  }
+
+  function addExtraToEditing(type){
+    const r = reservations.find(x => x.id === editingId);
+    if (!r) return;
+    const selectId = type === 'service' ? 'e2-service-select' : 'e2-minibar-select';
+    const qtyId = type === 'service' ? 'e2-service-qty' : 'e2-minibar-qty';
+    const catalogId = document.getElementById(selectId).value;
+    const qty = parseInt(document.getElementById(qtyId).value, 10) || 1;
+    const item = findCatalogItem(type, catalogId);
+    if (!item) return;
+
+    if (type === 'minibar') {
+      if (qty > item.stock) { alert(`Only ${item.stock} ${item.name} left in stock.`); return; }
+      item.stock -= qty; // decrement shared inventory immediately
+    }
+
+    r.extras = r.extras || [];
+    r.extras.push({ catalogId, type, name: item.name, price: item.price, qty });
+    // TODO: POST /api/bookings/{id}/extras { catalogId, type, qty }
+
+    renderEditExtras();
+    renderInventoryTable();
+  }
+
+  function removeExtraFromEditing(index){
+    const r = reservations.find(x => x.id === editingId);
+    if (!r || !r.extras[index]) return;
+    const removed = r.extras[index];
+    if (removed.type === 'minibar') {
+      const item = findCatalogItem('minibar', removed.catalogId);
+      if (item) item.stock += removed.qty; // restock on removal
+    }
+    r.extras.splice(index, 1);
+    // TODO: DELETE /api/bookings/{id}/extras/{index}
+
+    renderEditExtras();
+    renderInventoryTable();
   }
 
   function closeEditReservation(){
     document.getElementById('edit-reservation-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
     editingId = null;
+    renderReservations(); // in case extras changed stock/prices while editing
   }
 
   function submitEditReservation(){
@@ -1072,6 +1267,12 @@
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
     if (confirm(`Delete the reservation for ${r.guest}? This cannot be undone.`)) {
+      (r.extras || []).forEach(e => {
+        if (e.type === 'minibar') {
+          const item = findCatalogItem('minibar', e.catalogId);
+          if (item) item.stock += e.qty; // return unused stock
+        }
+      });
       reservations = reservations.filter(x => x.id !== editingId);
       // TODO: DELETE /api/bookings/{id}
       closeEditReservation();
@@ -1157,12 +1358,12 @@
     const revenueMonth = reservations
       .filter(r => countedStatuses.includes(r.status))
       .filter(r => { const c = parseLocalDate(r.checkin); return c.getMonth() === thisMonth && c.getFullYear() === thisYear; })
-      .reduce((s, r) => s + (r.price || 0), 0);
+      .reduce((s, r) => s + (r.price || 0) + extrasTotal(r), 0);
 
     const revenueYear = reservations
       .filter(r => countedStatuses.includes(r.status))
       .filter(r => parseLocalDate(r.checkin).getFullYear() === thisYear)
-      .reduce((s, r) => s + (r.price || 0), 0);
+      .reduce((s, r) => s + (r.price || 0) + extrasTotal(r), 0);
 
     const expenseMonth = expenses
       .filter(e => { const dt = parseLocalDate(e.date); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; })
