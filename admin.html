@@ -33,7 +33,7 @@
   .app{display:flex;min-height:100vh;}
 
   /* Sidebar */
-  .sidebar{width:236px;background:var(--pine-900);color:#EDEEE7;flex-shrink:0;display:flex;flex-direction:column;padding:24px 16px;}
+  .sidebar{width:236px;background:var(--pine-900);color:#EDEEE7;flex-shrink:0;display:flex;flex-direction:column;padding:24px 16px;transition:transform .2s ease;}
   .brand{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:#fff;padding:0 8px 24px;letter-spacing:0.2px;}
   .brand span{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8FA495;margin-top:4px;}
   nav{display:flex;flex-direction:column;gap:2px;}
@@ -45,6 +45,11 @@
   .sidebar-foot{margin-top:auto;padding:12px 8px 0;font-size:12px;color:#7C8C7F;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;margin-top:8px;}
   .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:#5FAE7A;}
+
+  /* Mobile nav */
+  .menu-toggle{display:none;background:none;border:none;cursor:pointer;padding:6px;margin-right:12px;}
+  .menu-toggle span{display:block;width:22px;height:2px;background:var(--ink);margin:5px 0;border-radius:1px;}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(18,38,29,0.5);z-index:150;}
 
   /* Main */
   .main{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -137,6 +142,8 @@
 
   .res-card.status-cancelled{border-left-color:var(--red);opacity:0.85;}
   .res-status-label.status-cancelled{color:var(--red);}
+  .res-card.status-checkedout{border-left-color:var(--ink-soft);opacity:0.85;}
+  .res-status-label.status-checkedout{color:var(--ink-soft);}
 
   /* Charts */
   .bar-chart{display:flex;align-items:flex-end;gap:14px;height:160px;padding-top:10px;}
@@ -165,10 +172,22 @@
   .res-edit-btn{display:none;position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:var(--pine-800);color:#fff;border:none;font-size:11px;cursor:pointer;align-items:center;justify-content:center;z-index:5;}
   body.edit-mode .res-edit-btn{display:flex;}
 
+  /* Overview stat cards as filters */
+  .stat-card.filterable{cursor:pointer;transition:border-color .15s,box-shadow .15s;user-select:none;}
+  .stat-card.filterable:hover{border-color:var(--pine-700);}
+  .stat-card.filterable.active{border-color:var(--pine-800);box-shadow:0 0 0 2px var(--pine-800) inset;}
+
   @media(max-width:900px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .room-grid{grid-template-columns:1fr;}
     .res-grid{grid-template-columns:1fr;}
+
+    .menu-toggle{display:block;}
+    .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);}
+    body.sidebar-open .sidebar-overlay{display:block;}
+    .topbar{padding:16px 18px;}
+    .content{padding:20px 16px;}
   }
 </style>
 </head>
@@ -197,11 +216,16 @@
     </div>
   </aside>
 
+  <div class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
   <div class="main">
     <div class="topbar">
-      <div>
-        <h1 id="page-title">Overview</h1>
-        <div class="topbar-sub" id="page-sub">Today, all rooms</div>
+      <div style="display:flex;align-items:center;">
+        <button class="menu-toggle" onclick="toggleSidebar(true)" aria-label="Open menu"><span></span><span></span><span></span></button>
+        <div>
+          <h1 id="page-title">Overview</h1>
+          <div class="topbar-sub" id="page-sub">Today, all rooms</div>
+        </div>
       </div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-outline">Force sync</button>
@@ -213,26 +237,23 @@
 
       <!-- OVERVIEW -->
       <section class="section active" id="overview">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-          <div class="period-select" id="period-overview"></div>
-        </div>
         <div class="stat-grid">
-          <div class="stat-card">
+          <div class="stat-card filterable" id="stat-card-checkedin" onclick="setOverviewFilter('checkedin')">
             <div class="stat-label">Checked in</div>
             <div class="stat-value" id="stat-checkedin" style="color:var(--pine-700);">–</div>
             <div class="stat-note">Currently at the property</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card filterable" id="stat-card-toarrive" onclick="setOverviewFilter('toarrive')">
             <div class="stat-label">Still to arrive</div>
             <div class="stat-value" id="stat-toarrive" style="color:var(--amber-dark);">–</div>
             <div class="stat-note">Reserved or paid, not checked in</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card filterable" id="stat-card-paid" onclick="setOverviewFilter('paid')">
             <div class="stat-label">Paid</div>
             <div class="stat-value" id="stat-paid" style="color:var(--teal);">–</div>
             <div class="stat-note">Payment received</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card filterable" id="stat-card-notpaid" onclick="setOverviewFilter('notpaid')">
             <div class="stat-label">Not paid</div>
             <div class="stat-value" id="stat-notpaid" style="color:var(--red);">–</div>
             <div class="stat-note">Still awaiting payment</div>
@@ -240,7 +261,7 @@
         </div>
 
         <div class="panel-head" style="margin-bottom:14px;">
-          <h2 style="font-size:15px;">Active reservations</h2>
+          <h2 style="font-size:15px;" id="overview-list-title">Active reservations</h2>
           <button class="btn btn-outline" onclick="showSection('reservations')">View all</button>
         </div>
         <div class="res-grid" id="overview-res-grid"></div>
@@ -499,6 +520,13 @@
 
     const hideAddBooking = (id === 'reports' || id === 'sync');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
+
+    toggleSidebar(false); // close the mobile sidebar after navigating
+  }
+
+  function toggleSidebar(open){
+    document.querySelector('.sidebar').classList.toggle('open', open);
+    document.body.classList.toggle('sidebar-open', open);
   }
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -535,15 +563,20 @@
   ];
 
   // Auto-assign the first free room of the requested type for the given date range.
+  // A cancelled reservation is excluded here, so cancelling a stay
+  // automatically frees its room for new bookings over the same dates.
+  function roomHasConflict(roomNumber, checkin, checkout, excludeId){
+    const s = new Date(checkin), e = new Date(checkout);
+    return reservations.some(r =>
+      r.id !== excludeId && r.roomNumber === roomNumber && r.status !== 'cancelled' &&
+      s < new Date(r.checkout) && new Date(r.checkin) < e
+    );
+  }
+
   function assignRoom(type, checkin, checkout, excludeId){
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
-    const s = new Date(checkin), e = new Date(checkout);
     for (const num of pool) {
-      const conflict = reservations.some(r =>
-        r.id !== excludeId && r.roomNumber === num && r.status !== 'cancelled' &&
-        s < new Date(r.checkout) && new Date(r.checkin) < e
-      );
-      if (!conflict) return num;
+      if (!roomHasConflict(num, checkin, checkout, excludeId)) return num;
     }
     return null; // fully booked for those dates
   }
@@ -607,8 +640,9 @@
   }
 
   function cardHTML(r, closed){
-    const statusClass = `status-${r.status}`;
-    const statusText = statusLabel[r.status];
+    // Once checkout date has passed, a non-cancelled stay displays as "Checked out".
+    const statusClass = r.status === 'cancelled' ? 'status-cancelled' : (closed ? 'status-checkedout' : `status-${r.status}`);
+    const statusText = r.status === 'cancelled' ? 'Cancelled' : (closed ? 'Checked out' : statusLabel[r.status]);
 
     let actions = '';
     if (!closed) {
@@ -656,7 +690,7 @@
   }
 
   function renderPeriodSelectors(){
-    ['period-overview','period-reservations','period-calendar','period-reports'].forEach(id => {
+    ['period-reservations','period-calendar','period-reports'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = buildPeriodSelectHTML(id);
     });
@@ -665,6 +699,13 @@
   function setPeriod(kind, value){
     selPeriod[kind] = parseInt(value, 10);
     renderPeriodSelectors();
+    renderReservations();
+  }
+
+  let overviewFilter = null; // 'checkedin' | 'toarrive' | 'paid' | 'notpaid' | null (null = show all active)
+
+  function setOverviewFilter(kind){
+    overviewFilter = (overviewFilter === kind) ? null : kind; // click again to clear
     renderReservations();
   }
 
@@ -683,19 +724,30 @@
     const currentList = currentTab === 'active' ? active : closed;
     document.getElementById('res-empty').style.display = currentList.length ? 'none' : 'block';
 
-    // Overview: cards + top stats, based on active reservations for the selected period
-    const ovGrid = document.getElementById('overview-res-grid');
-    if (ovGrid) ovGrid.innerHTML = active.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No active reservations for this month.</p>';
+    // Overview: always ALL active reservations (not period-filtered) — only
+    // cancelled or already-checked-out reservations disappear from here.
+    const allActive = reservations.filter(r => !isClosed(r));
+    const checkedInList = allActive.filter(r => r.status === 'checkedin');
+    const toArriveList  = allActive.filter(r => r.status !== 'checkedin');
+    const paidList      = allActive.filter(r => r.status === 'paid' || r.status === 'checkedin');
+    const notPaidList   = allActive.filter(r => r.status === 'reserved');
 
-    const checkedIn = active.filter(r => r.status === 'checkedin').length;
-    const toArrive  = active.filter(r => r.status !== 'checkedin').length;
-    const paid      = active.filter(r => r.status === 'paid' || r.status === 'checkedin').length;
-    const notPaid   = active.filter(r => r.status === 'reserved').length;
     const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setStat('stat-checkedin', checkedIn);
-    setStat('stat-toarrive', toArrive);
-    setStat('stat-paid', paid);
-    setStat('stat-notpaid', notPaid);
+    setStat('stat-checkedin', checkedInList.length);
+    setStat('stat-toarrive', toArriveList.length);
+    setStat('stat-paid', paidList.length);
+    setStat('stat-notpaid', notPaidList.length);
+
+    const filterMap = { checkedin: [checkedInList,'Checked in'], toarrive: [toArriveList,'Still to arrive'], paid: [paidList,'Paid'], notpaid: [notPaidList,'Not paid'] };
+    const [ovList, ovTitle] = overviewFilter ? filterMap[overviewFilter] : [allActive, 'Active reservations'];
+
+    document.querySelectorAll('.stat-card.filterable').forEach(c => c.classList.remove('active'));
+    if (overviewFilter) { const el = document.getElementById('stat-card-' + overviewFilter); if (el) el.classList.add('active'); }
+
+    const titleEl = document.getElementById('overview-list-title');
+    if (titleEl) titleEl.textContent = ovTitle;
+    const ovGrid = document.getElementById('overview-res-grid');
+    if (ovGrid) ovGrid.innerHTML = ovList.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No reservations in this view.</p>';
 
     renderReports();
     renderGantt();
@@ -806,14 +858,24 @@
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
 
+    const newRoomNumber = parseInt(document.getElementById('e2-roomnumber').value, 10);
+    const newCheckin = document.getElementById('e2-checkin').value;
+    const newCheckout = document.getElementById('e2-checkout').value;
+    const newStatus = document.getElementById('e2-status').value;
+
+    if (newStatus !== 'cancelled' && roomHasConflict(newRoomNumber, newCheckin, newCheckout, r.id)) {
+      alert(`Room ${newRoomNumber} is already booked for an overlapping date range. Pick a different room or dates.`);
+      return;
+    }
+
     r.guest = document.getElementById('e2-guest').value.trim();
     r.phone = document.getElementById('e2-phone').value.trim();
     r.room = document.getElementById('e2-roomtype').value;
-    r.roomNumber = parseInt(document.getElementById('e2-roomnumber').value, 10);
-    r.checkin = document.getElementById('e2-checkin').value;
-    r.checkout = document.getElementById('e2-checkout').value;
+    r.roomNumber = newRoomNumber;
+    r.checkin = newCheckin;
+    r.checkout = newCheckout;
     r.source = document.getElementById('e2-source').value;
-    r.status = document.getElementById('e2-status').value;
+    r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
     // TODO: PATCH /api/bookings/{id} with the full updated object
 
