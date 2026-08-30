@@ -134,7 +134,7 @@
   /* Add booking modal */
   .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(18,38,29,0.45);z-index:100;align-items:center;justify-content:center;}
   .modal-backdrop.open{display:flex;}
-  .modal{background:var(--paper);border-radius:var(--radius);padding:26px;width:420px;max-width:92vw;}
+  .modal{background:var(--paper);border-radius:var(--radius);padding:26px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;}
   .modal h2{font-size:17px;margin-bottom:16px;}
   .modal label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:12px 0 4px;}
   .modal input,.modal select{width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 10px;}
@@ -162,15 +162,22 @@
   .gantt-label{padding:6px 10px;font-size:12px;font-weight:600;background:#FAF8F2;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;position:sticky;left:0;z-index:2;white-space:nowrap;}
   .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
   .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
+  .gantt-daycell.month-start{border-left:2px solid var(--amber);}
+  .gantt-daycell.head.month-start{color:var(--amber-dark);font-weight:700;}
   .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;}
+  .gantt-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .gantt-nav select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
 
   /* Edit mode */
   .edit-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#C7D1C6;padding:0 8px 16px;cursor:pointer;}
   .edit-toggle input{accent-color:var(--amber);width:14px;height:14px;}
-  .edit-fab{display:none;position:fixed;bottom:24px;right:24px;background:var(--amber);color:#fff;font-weight:700;font-size:13px;padding:12px 20px;border-radius:30px;box-shadow:0 8px 22px rgba(18,38,29,0.3);z-index:200;cursor:pointer;border:none;font-family:inherit;}
-  body.edit-mode .edit-fab{display:block;}
   .res-edit-btn{display:none;position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:var(--pine-800);color:#fff;border:none;font-size:11px;cursor:pointer;align-items:center;justify-content:center;z-index:5;}
   body.edit-mode .res-edit-btn{display:flex;}
+
+  /* Back to top */
+  .back-to-top{display:none;position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:var(--pine-800);color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 8px 22px rgba(18,38,29,0.3);z-index:150;align-items:center;justify-content:center;font-family:inherit;}
+  .back-to-top.show{display:flex;}
+  body.modal-open .back-to-top{display:none;}
 
   /* Overview stat cards as filters */
   .stat-card.filterable{cursor:pointer;transition:border-color .15s,box-shadow .15s;user-select:none;}
@@ -186,8 +193,15 @@
     .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200;transform:translateX(-100%);}
     .sidebar.open{transform:translateX(0);}
     body.sidebar-open .sidebar-overlay{display:block;}
-    .topbar{padding:16px 18px;}
-    .content{padding:20px 16px;}
+
+    .topbar{padding:14px 16px;flex-wrap:wrap;row-gap:10px;}
+    .topbar-controls{flex-wrap:wrap;width:100%;justify-content:flex-start;}
+    .topbar h1{font-size:18px;}
+    .topbar-sub{font-size:11px;}
+    .period-select select,.gantt-nav select{font-size:12px;padding:5px 8px;}
+    .btn{font-size:12px;padding:7px 12px;}
+
+    .content{padding:18px 14px;}
   }
 </style>
 </head>
@@ -227,8 +241,8 @@
           <div class="topbar-sub" id="page-sub">Today, all rooms</div>
         </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <div class="period-select" id="topbar-period-overview" style="display:none;"></div>
+      <div class="topbar-controls" style="display:flex;gap:10px;align-items:center;">
+        <div class="period-select" id="topbar-period"></div>
         <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Add booking</button>
       </div>
     </div>
@@ -269,17 +283,26 @@
 
       <!-- CALENDAR -->
       <section class="section" id="calendar">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
           <div class="cal-legend">
             <span><i class="sw" style="background:var(--blue);"></i>Booking.com</span>
             <span><i class="sw" style="background:var(--amber);"></i>Direct</span>
           </div>
-          <div class="period-select" id="period-calendar"></div>
+          <div class="gantt-nav">
+            <button class="btn btn-outline" onclick="shiftGantt(-1)">‹ Prev</button>
+            <button class="btn btn-outline" onclick="jumpGanttToday()">Today</button>
+            <button class="btn btn-outline" onclick="shiftGantt(1)">Next ›</button>
+            <select id="gantt-viewmode" onchange="setGanttView(this.value)">
+              <option value="week">Week view</option>
+              <option value="month" selected>Month view</option>
+            </select>
+          </div>
         </div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;" id="gantt-range-label"></div>
         <div class="panel" style="overflow-x:auto;padding:0;">
           <div id="gantt"></div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">All 9 rooms shown for the selected month. Bars are colored by source and labeled with the guest's first name.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Scrolls continuously — a stay is never cut off at a month boundary. Bars are colored by source and labeled with the guest's first name.</p>
       </section>
 
       <!-- RESERVATIONS -->
@@ -290,7 +313,6 @@
             <button class="res-tab" data-tab="closed" onclick="showResTab('closed')">Closed <span class="count" id="count-closed"></span></button>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
-            <div class="period-select" id="period-reservations"></div>
             <button class="btn btn-primary" onclick="openAddBooking()">+ Add booking</button>
           </div>
         </div>
@@ -356,9 +378,6 @@
 
       <!-- REPORTS -->
       <section class="section" id="reports">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-          <div class="period-select" id="period-reports"></div>
-        </div>
         <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
           <div class="stat-card">
             <div class="stat-label">Revenue selected month</div>
@@ -500,7 +519,7 @@
   </div>
 </div>
 
-<button class="edit-fab" onclick="toggleEditMode(false)">✎ Edit mode is ON — click any card's ✎ to fix it, or here to exit</button>
+<button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Back to top">↑</button>
 
 <script>
   // Section titles + subtitles shown in the topbar per section
@@ -524,7 +543,9 @@
     const hideAddBooking = (id === 'reports' || id === 'sync');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
-    document.getElementById('topbar-period-overview').style.display = (id === 'overview') ? 'flex' : 'none';
+    document.querySelector('.content').scrollTop = 0;
+    const backBtn = document.getElementById('back-to-top');
+    if (backBtn) backBtn.classList.remove('show');
 
     toggleSidebar(false); // close the mobile sidebar after navigating
   }
@@ -533,6 +554,20 @@
     document.querySelector('.sidebar').classList.toggle('open', open);
     document.body.classList.toggle('sidebar-open', open);
   }
+
+  function scrollContentTop(){
+    document.querySelector('.content').scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const contentEl = document.querySelector('.content');
+    const backBtn = document.getElementById('back-to-top');
+    if (contentEl && backBtn) {
+      contentEl.addEventListener('scroll', () => {
+        backBtn.classList.toggle('show', contentEl.scrollTop > 300);
+      });
+    }
+  });
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => showSection(btn.dataset.section));
@@ -605,29 +640,84 @@
     return Math.round((d1 - d0) / 86400000);
   }
 
+  function addDays(date, n){
+    const dt = new Date(date);
+    dt.setDate(dt.getDate() + n);
+    return dt;
+  }
+
+  function startOfWeek(date){
+    const dt = new Date(date);
+    dt.setHours(0,0,0,0);
+    const dow = (dt.getDay() + 6) % 7; // Monday = 0
+    dt.setDate(dt.getDate() - dow);
+    return dt;
+  }
+
+  function fmtShort(date){
+    return date.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+  }
+
+  // ---------------------------------------------------------------
+  // CALENDAR — a rolling, continuously-scrollable window instead of a
+  // fixed calendar month, so a stay is never cut off at month's end.
+  // ---------------------------------------------------------------
+  let ganttViewMode = 'month'; // 'week' (7 days) | 'month' (35 rolling days)
+  let ganttStart = startOfWeek(new Date());
+
+  function ganttWindowDays(){ return ganttViewMode === 'week' ? 7 : 35; }
+
+  function shiftGantt(dir){
+    ganttStart = addDays(ganttStart, dir * ganttWindowDays());
+    renderGantt();
+  }
+  function jumpGanttToday(){
+    ganttStart = startOfWeek(new Date());
+    renderGantt();
+  }
+  function setGanttView(mode){
+    ganttViewMode = mode;
+    renderGantt();
+  }
+
   function renderGantt(){
     const el = document.getElementById('gantt');
     if (!el) return;
 
-    const year = selPeriod.year, month = selPeriod.month;
-    const first = new Date(year, month, 1);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const colTemplate = `140px repeat(${daysInMonth}, minmax(26px,1fr))`;
+    const days = ganttWindowDays();
+    const first = ganttStart;
+    const colWidth = ganttViewMode === 'week' ? 64 : 26;
+    const colTemplate = `140px repeat(${days}, minmax(${colWidth}px,1fr))`;
+
+    const rangeLabel = document.getElementById('gantt-range-label');
+    if (rangeLabel) rangeLabel.textContent = `${fmtShort(first)} – ${fmtShort(addDays(first, days - 1))}`;
 
     const rooms = [];
     for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
 
+    const dayHeaderHTML = Array.from({length:days}, (_,i) => {
+      const dt = addDays(first, i);
+      const isFirstOfMonth = dt.getDate() === 1;
+      const label = isFirstOfMonth
+        ? `${dt.toLocaleDateString('en-GB',{month:'short'})} ${dt.getDate()}`
+        : dt.getDate();
+      return `<div class="gantt-daycell head ${isFirstOfMonth ? 'month-start' : ''}" style="grid-column:${i+2};grid-row:1;">${label}</div>`;
+    }).join('');
+
     let html = `<div class="gantt-row" style="grid-template-columns:${colTemplate};">
       <div class="gantt-label" style="grid-column:1;grid-row:1;">Room</div>
-      ${Array.from({length:daysInMonth}, (_,i) => `<div class="gantt-daycell head" style="grid-column:${i+2};grid-row:1;">${i+1}</div>`).join('')}
+      ${dayHeaderHTML}
     </div>`;
 
     rooms.forEach(room => {
-      const cells = Array.from({length:daysInMonth}, (_,i) => `<div class="gantt-daycell" style="grid-column:${i+2};grid-row:1;"></div>`).join('');
+      const cells = Array.from({length:days}, (_,i) => {
+        const dt = addDays(first, i);
+        return `<div class="gantt-daycell ${dt.getDate()===1?'month-start':''}" style="grid-column:${i+2};grid-row:1;"></div>`;
+      }).join('');
       const roomReservations = reservations.filter(r => r.roomNumber === room.num && r.status !== 'cancelled');
       const bars = roomReservations.map(r => {
         const s = Math.max(0, dayOffset(r.checkin, first));
-        const e = Math.min(daysInMonth, dayOffset(r.checkout, first));
+        const e = Math.min(days, dayOffset(r.checkout, first));
         if (e <= s) return '';
         const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
         return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
@@ -695,15 +785,17 @@
   }
 
   function renderPeriodSelectors(){
-    ['topbar-period-overview','period-reservations','period-calendar','period-reports'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = buildPeriodSelectHTML(id);
-    });
+    const el = document.getElementById('topbar-period');
+    if (el) el.innerHTML = buildPeriodSelectHTML('topbar-period');
   }
 
   function setPeriod(kind, value){
     selPeriod[kind] = parseInt(value, 10);
     renderPeriodSelectors();
+    // If we're looking at the calendar, jump its rolling window to that month too.
+    if (document.getElementById('calendar').classList.contains('active')) {
+      ganttStart = startOfWeek(new Date(selPeriod.year, selPeriod.month, 1));
+    }
     renderReservations();
   }
 
@@ -789,9 +881,11 @@
   function openAddBooking(){
     showSection('reservations');
     document.getElementById('add-booking-modal').classList.add('open');
+    document.body.classList.add('modal-open');
   }
   function closeAddBooking(){
     document.getElementById('add-booking-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
   }
   function submitAddBooking(){
     const guest = document.getElementById('f-guest').value.trim();
@@ -852,10 +946,12 @@
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
     document.getElementById('edit-reservation-modal').classList.add('open');
+    document.body.classList.add('modal-open');
   }
 
   function closeEditReservation(){
     document.getElementById('edit-reservation-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
     editingId = null;
   }
 
@@ -911,9 +1007,11 @@
 
   function openAddExpense(){
     document.getElementById('add-expense-modal').classList.add('open');
+    document.body.classList.add('modal-open');
   }
   function closeAddExpense(){
     document.getElementById('add-expense-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
   }
   function submitAddExpense(){
     const category = document.getElementById('e-category').value;
@@ -1030,7 +1128,6 @@
   }
 
   renderPeriodSelectors();
-  document.getElementById('topbar-period-overview').style.display = 'flex';
   renderReservations();
 
   // TODO: replace remaining mock table/card data (rooms, sync log)
