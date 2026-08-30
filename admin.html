@@ -227,8 +227,8 @@
           <div class="topbar-sub" id="page-sub">Today, all rooms</div>
         </div>
       </div>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-outline">Force sync</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="period-select" id="topbar-period-overview" style="display:none;"></div>
         <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Add booking</button>
       </div>
     </div>
@@ -324,6 +324,9 @@
 
       <!-- SYNC STATUS -->
       <section class="section" id="sync">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <button class="btn btn-outline">Force sync</button>
+        </div>
         <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
           <div class="stat-card">
             <div class="stat-label">Connection</div>
@@ -521,6 +524,8 @@
     const hideAddBooking = (id === 'reports' || id === 'sync');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
+    document.getElementById('topbar-period-overview').style.display = (id === 'overview') ? 'flex' : 'none';
+
     toggleSidebar(false); // close the mobile sidebar after navigating
   }
 
@@ -690,7 +695,7 @@
   }
 
   function renderPeriodSelectors(){
-    ['period-reservations','period-calendar','period-reports'].forEach(id => {
+    ['topbar-period-overview','period-reservations','period-calendar','period-reports'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = buildPeriodSelectHTML(id);
     });
@@ -1025,6 +1030,7 @@
   }
 
   renderPeriodSelectors();
+  document.getElementById('topbar-period-overview').style.display = 'flex';
   renderReservations();
 
   // TODO: replace remaining mock table/card data (rooms, sync log)
