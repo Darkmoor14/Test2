@@ -157,6 +157,14 @@
   .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
   .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;}
 
+  /* Edit mode */
+  .edit-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#C7D1C6;padding:0 8px 16px;cursor:pointer;}
+  .edit-toggle input{accent-color:var(--amber);width:14px;height:14px;}
+  .edit-fab{display:none;position:fixed;bottom:24px;right:24px;background:var(--amber);color:#fff;font-weight:700;font-size:13px;padding:12px 20px;border-radius:30px;box-shadow:0 8px 22px rgba(18,38,29,0.3);z-index:200;cursor:pointer;border:none;font-family:inherit;}
+  body.edit-mode .edit-fab{display:block;}
+  .res-edit-btn{display:none;position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;background:var(--pine-800);color:#fff;border:none;font-size:11px;cursor:pointer;align-items:center;justify-content:center;z-index:5;}
+  body.edit-mode .res-edit-btn{display:flex;}
+
   @media(max-width:900px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .room-grid{grid-template-columns:1fr;}
@@ -171,6 +179,10 @@
     <div class="brand">Vila Silvia
       <span>Admin · Sovata</span>
     </div>
+    <label class="edit-toggle">
+      <input type="checkbox" id="edit-mode-toggle" onchange="toggleEditMode(this.checked)">
+      Edit mode
+    </label>
     <nav id="nav">
       <button class="nav-btn active" data-section="overview"><span class="nav-dot"></span>Overview</button>
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
@@ -422,6 +434,50 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="edit-reservation-modal">
+  <div class="modal">
+    <h2>Edit reservation</h2>
+    <label>Guest name</label>
+    <input type="text" id="e2-guest">
+    <label>Phone number</label>
+    <input type="text" id="e2-phone">
+    <label>Room type</label>
+    <select id="e2-roomtype" onchange="populateRoomNumberOptions(this.value, null)">
+      <option value="Standard">Standard</option>
+      <option value="Apartament">Apartament</option>
+    </select>
+    <label>Room number</label>
+    <select id="e2-roomnumber"></select>
+    <label>Check-in</label>
+    <input type="date" id="e2-checkin">
+    <label>Check-out</label>
+    <input type="date" id="e2-checkout">
+    <label>Source</label>
+    <select id="e2-source">
+      <option value="booking">Booking.com</option>
+      <option value="direct">Direct</option>
+    </select>
+    <label>Status</label>
+    <select id="e2-status">
+      <option value="reserved">Reserved</option>
+      <option value="paid">Paid</option>
+      <option value="checkedin">Checked in</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <label>Price (lei)</label>
+    <input type="number" id="e2-price">
+    <div class="modal-actions" style="justify-content:space-between;">
+      <button class="btn btn-outline" style="color:var(--red);border-color:var(--red);" onclick="deleteReservationConfirm()">Delete</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-outline" onclick="closeEditReservation()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitEditReservation()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="edit-fab" onclick="toggleEditMode(false)">✎ Edit mode is ON — click any card's ✎ to fix it, or here to exit</button>
+
 <script>
   // Section titles + subtitles shown in the topbar per section
   const meta = {
@@ -570,6 +626,7 @@
 
     return `
       <div class="res-card ${statusClass}">
+        <button class="res-edit-btn" onclick="openEditReservation(${r.id})" title="Edit this reservation">✎</button>
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
         <div class="res-guest">${r.guest}</div>
         <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
@@ -702,6 +759,77 @@
     closeAddBooking();
     ['f-guest','f-phone','f-checkin','f-checkout'].forEach(id => document.getElementById(id).value = '');
     showResTab('active');
+  }
+
+  // ---------------------------------------------------------------
+  // EDIT MODE — a global toggle that reveals a ✎ button on every
+  // reservation card, letting you correct any field (or delete the
+  // reservation entirely) in case something was entered wrong.
+  // ---------------------------------------------------------------
+  function toggleEditMode(on){
+    document.body.classList.toggle('edit-mode', on);
+    const cb = document.getElementById('edit-mode-toggle');
+    if (cb) cb.checked = on;
+  }
+
+  let editingId = null;
+
+  function populateRoomNumberOptions(type, current){
+    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+    const sel = document.getElementById('e2-roomnumber');
+    const keep = current !== null ? current : parseInt(sel.value, 10);
+    sel.innerHTML = pool.map(n => `<option value="${n}" ${n === keep ? 'selected' : ''}>${n}</option>`).join('');
+  }
+
+  function openEditReservation(id){
+    const r = reservations.find(x => x.id === id);
+    if (!r) return;
+    editingId = id;
+    document.getElementById('e2-guest').value = r.guest;
+    document.getElementById('e2-phone').value = r.phone;
+    document.getElementById('e2-roomtype').value = r.room;
+    populateRoomNumberOptions(r.room, r.roomNumber);
+    document.getElementById('e2-checkin').value = r.checkin;
+    document.getElementById('e2-checkout').value = r.checkout;
+    document.getElementById('e2-source').value = r.source;
+    document.getElementById('e2-status').value = r.status;
+    document.getElementById('e2-price').value = r.price || 0;
+    document.getElementById('edit-reservation-modal').classList.add('open');
+  }
+
+  function closeEditReservation(){
+    document.getElementById('edit-reservation-modal').classList.remove('open');
+    editingId = null;
+  }
+
+  function submitEditReservation(){
+    const r = reservations.find(x => x.id === editingId);
+    if (!r) return;
+
+    r.guest = document.getElementById('e2-guest').value.trim();
+    r.phone = document.getElementById('e2-phone').value.trim();
+    r.room = document.getElementById('e2-roomtype').value;
+    r.roomNumber = parseInt(document.getElementById('e2-roomnumber').value, 10);
+    r.checkin = document.getElementById('e2-checkin').value;
+    r.checkout = document.getElementById('e2-checkout').value;
+    r.source = document.getElementById('e2-source').value;
+    r.status = document.getElementById('e2-status').value;
+    r.price = parseFloat(document.getElementById('e2-price').value) || 0;
+    // TODO: PATCH /api/bookings/{id} with the full updated object
+
+    closeEditReservation();
+    renderReservations(); // cascades to overview stats, Gantt, and reports automatically
+  }
+
+  function deleteReservationConfirm(){
+    const r = reservations.find(x => x.id === editingId);
+    if (!r) return;
+    if (confirm(`Delete the reservation for ${r.guest}? This cannot be undone.`)) {
+      reservations = reservations.filter(x => x.id !== editingId);
+      // TODO: DELETE /api/bookings/{id}
+      closeEditReservation();
+      renderReservations();
+    }
   }
 
   // ---------------------------------------------------------------
