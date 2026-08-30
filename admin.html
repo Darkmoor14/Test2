@@ -81,17 +81,10 @@
   .badge-confirmed{background:var(--teal-bg);color:var(--teal);}
   .badge-pending{background:var(--amber-bg);color:var(--amber-dark);}
 
-  /* Calendar */
-  .cal-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+  /* Calendar legend */
+  .cal-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-soft);}
   .cal-legend span{display:inline-flex;align-items:center;gap:6px;}
   .cal-legend .sw{width:10px;height:10px;border-radius:3px;}
-  .cal-grid{display:grid;grid-template-columns:120px repeat(14,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:11px;}
-  .cal-grid .cell{background:var(--paper);padding:6px 4px;text-align:center;color:var(--ink-soft);}
-  .cal-grid .room-name{background:#FAF8F2;text-align:left;font-weight:500;color:var(--ink);padding:6px 10px;}
-  .cal-grid .head{background:#FAF8F2;font-weight:600;color:var(--ink-soft);}
-  .cal-grid .booked{background:var(--blue-bg);}
-  .cal-grid .direct{background:var(--teal-bg);}
-  .cal-grid .phone{background:var(--amber-bg);}
 
   /* Rooms */
   .room-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
@@ -156,6 +149,14 @@
   .donut-legend div{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
   .donut-legend .sw{width:10px;height:10px;border-radius:3px;}
 
+  /* Gantt calendar */
+  .period-select select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
+  .gantt-row{display:grid;position:relative;}
+  .gantt-label{padding:6px 10px;font-size:12px;font-weight:600;background:#FAF8F2;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;position:sticky;left:0;z-index:2;white-space:nowrap;}
+  .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
+  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
+  .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;}
+
   @media(max-width:900px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .room-grid{grid-template-columns:1fr;}
@@ -200,6 +201,9 @@
 
       <!-- OVERVIEW -->
       <section class="section active" id="overview">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <div class="period-select" id="period-overview"></div>
+        </div>
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-label">Checked in</div>
@@ -232,59 +236,34 @@
 
       <!-- CALENDAR -->
       <section class="section" id="calendar">
-        <div class="cal-legend">
-          <span><i class="sw" style="background:var(--blue-bg);border:1px solid var(--blue);"></i>Booking.com</span>
-          <span><i class="sw" style="background:var(--teal-bg);border:1px solid var(--teal);"></i>Direct website</span>
-          <span><i class="sw" style="background:var(--amber-bg);border:1px solid var(--amber);"></i>Phone / manual</span>
-        </div>
-        <div class="panel" style="overflow-x:auto;">
-          <div class="cal-grid" style="min-width:900px;">
-            <div class="cell head"></div>
-            <div class="cell head">21</div><div class="cell head">22</div><div class="cell head">23</div><div class="cell head">24</div>
-            <div class="cell head">25</div><div class="cell head">26</div><div class="cell head">27</div><div class="cell head">28</div>
-            <div class="cell head">29</div><div class="cell head">30</div><div class="cell head">31</div><div class="cell head">1</div>
-            <div class="cell head">2</div><div class="cell head">3</div>
-
-            <div class="room-name">Room 1</div>
-            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div><div class="cell"></div>
-            <div class="cell phone">●</div><div class="cell phone">●</div><div class="cell phone">●</div><div class="cell"></div>
-            <div class="cell"></div><div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div>
-            <div class="cell"></div><div class="cell"></div>
-
-            <div class="room-name">Room 2</div>
-            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell direct">●</div><div class="cell direct">●</div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell booked">●</div>
-            <div class="cell booked">●</div><div class="cell"></div>
-
-            <div class="room-name">Room 3</div>
-            <div class="cell"></div><div class="cell"></div><div class="cell phone">●</div><div class="cell phone">●</div>
-            <div class="cell phone">●</div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div><div class="cell booked">●</div>
-            <div class="cell"></div><div class="cell"></div>
-
-            <div class="room-name">Apartament</div>
-            <div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div><div class="cell direct">●</div>
-            <div class="cell direct">●</div><div class="cell"></div><div class="cell"></div><div class="cell booked">●</div>
-            <div class="cell booked">●</div><div class="cell booked">●</div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div class="cal-legend">
+            <span><i class="sw" style="background:var(--blue);"></i>Booking.com</span>
+            <span><i class="sw" style="background:var(--amber);"></i>Direct</span>
           </div>
+          <div class="period-select" id="period-calendar"></div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);">Click any date range on a room row to add a manual booking or block dates. (Wired to <code>/api/bookings</code> once the backend is connected.)</p>
+        <div class="panel" style="overflow-x:auto;padding:0;">
+          <div id="gantt"></div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">All 9 rooms shown for the selected month. Bars are colored by source and labeled with the guest's first name.</p>
       </section>
 
       <!-- RESERVATIONS -->
       <section class="section" id="reservations">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
           <div class="res-tabs">
             <button class="res-tab active" data-tab="active" onclick="showResTab('active')">Active <span class="count" id="count-active"></span></button>
             <button class="res-tab" data-tab="closed" onclick="showResTab('closed')">Closed <span class="count" id="count-closed"></span></button>
           </div>
-          <button class="btn btn-primary" onclick="openAddBooking()">+ Add booking</button>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="period-select" id="period-reservations"></div>
+            <button class="btn btn-primary" onclick="openAddBooking()">+ Add booking</button>
+          </div>
         </div>
         <div class="res-grid" id="res-grid-active"></div>
         <div class="res-grid" id="res-grid-closed" style="display:none;"></div>
-        <p class="empty-note" id="res-empty" style="display:none;">No reservations here yet.</p>
+        <p class="empty-note" id="res-empty" style="display:none;">No reservations for this month yet.</p>
       </section>
 
       <!-- ROOMS & PRICING -->
@@ -292,14 +271,14 @@
         <div class="room-grid" style="grid-template-columns:repeat(2,1fr);max-width:700px;">
           <div class="room-card">
             <h3>Standard</h3>
-            <div class="stat-note" style="margin-bottom:4px;">9 rooms of this type</div>
+            <div class="stat-note" style="margin-bottom:4px;">7 rooms of this type · No. 2–8</div>
             <div class="price">340 lei <span>/ night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="390"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
           </div>
           <div class="room-card">
             <h3>Apartament</h3>
-            <div class="stat-note" style="margin-bottom:4px;">2 apartments of this type</div>
+            <div class="stat-note" style="margin-bottom:4px;">2 apartments of this type · No. 1, 9</div>
             <div class="price">620 lei <span>/ night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="700"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
@@ -341,21 +320,24 @@
 
       <!-- REPORTS -->
       <section class="section" id="reports">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <div class="period-select" id="period-reports"></div>
+        </div>
         <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
           <div class="stat-card">
-            <div class="stat-label">Revenue this month</div>
+            <div class="stat-label">Revenue selected month</div>
             <div class="stat-value" id="rev-month">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Revenue this year</div>
+            <div class="stat-label">Revenue selected year</div>
             <div class="stat-value" id="rev-year">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Expenses this month</div>
+            <div class="stat-label">Expenses selected month</div>
             <div class="stat-value" id="exp-month" style="color:var(--red);">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Net this month</div>
+            <div class="stat-label">Net selected month</div>
             <div class="stat-value" id="net-month">–</div>
           </div>
         </div>
@@ -482,15 +464,33 @@
     return dt.toISOString().slice(0,10);
   }
 
+  // Room inventory: Standard = No. 2–8 (7 rooms), Apartament = No. 1 and 9 (2 units)
+  const STANDARD_ROOMS = [2,3,4,5,6,7,8];
+  const APARTMENT_ROOMS = [1,9];
+
   let reservations = [
-    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240 },
-    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680  },
-    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100 },
-    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020 },
-    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3), price: 1860 },
-    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8), price: 700  },
-    { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340  }
+    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240 },
+    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   roomNumber: 3, source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680  },
+    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", roomNumber: 1, source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100 },
+    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   roomNumber: 4, source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020 },
+    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", roomNumber: 9, source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3), price: 1860 },
+    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   roomNumber: 5, source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8), price: 700  },
+    { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   roomNumber: 6, source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340  }
   ];
+
+  // Auto-assign the first free room of the requested type for the given date range.
+  function assignRoom(type, checkin, checkout, excludeId){
+    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+    const s = new Date(checkin), e = new Date(checkout);
+    for (const num of pool) {
+      const conflict = reservations.some(r =>
+        r.id !== excludeId && r.roomNumber === num && r.status !== 'cancelled' &&
+        s < new Date(r.checkout) && new Date(r.checkin) < e
+      );
+      if (!conflict) return num;
+    }
+    return null; // fully booked for those dates
+  }
 
   const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in", cancelled: "Cancelled" };
   const sourceLabel = { booking: "Booking.com", direct: "Direct" };
@@ -503,6 +503,51 @@
   function fmtDate(iso){
     const dt = new Date(iso);
     return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+  }
+
+  function dayOffset(dateStr, refDate){
+    const d1 = new Date(new Date(dateStr).toDateString());
+    const d0 = new Date(refDate.toDateString());
+    return Math.round((d1 - d0) / 86400000);
+  }
+
+  function renderGantt(){
+    const el = document.getElementById('gantt');
+    if (!el) return;
+
+    const year = selPeriod.year, month = selPeriod.month;
+    const first = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const colTemplate = `140px repeat(${daysInMonth}, minmax(26px,1fr))`;
+
+    const rooms = [];
+    for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
+
+    let html = `<div class="gantt-row" style="grid-template-columns:${colTemplate};">
+      <div class="gantt-label" style="grid-column:1;grid-row:1;">Room</div>
+      ${Array.from({length:daysInMonth}, (_,i) => `<div class="gantt-daycell head" style="grid-column:${i+2};grid-row:1;">${i+1}</div>`).join('')}
+    </div>`;
+
+    rooms.forEach(room => {
+      const cells = Array.from({length:daysInMonth}, (_,i) => `<div class="gantt-daycell" style="grid-column:${i+2};grid-row:1;"></div>`).join('');
+      const roomReservations = reservations.filter(r => r.roomNumber === room.num && r.status !== 'cancelled');
+      const bars = roomReservations.map(r => {
+        const s = Math.max(0, dayOffset(r.checkin, first));
+        const e = Math.min(daysInMonth, dayOffset(r.checkout, first));
+        if (e <= s) return '';
+        const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
+        return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
+                  style="grid-column:${s+2} / ${e+2};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
+      }).join('');
+
+      html += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">
+        <div class="gantt-label" style="grid-column:1;grid-row:1;">${room.num} · ${room.type}</div>
+        ${cells}
+        ${bars}
+      </div>`;
+    });
+
+    el.innerHTML = html;
   }
 
   function cardHTML(r, closed){
@@ -527,7 +572,7 @@
       <div class="res-card ${statusClass}">
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
         <div class="res-guest">${r.guest}</div>
-        <span class="res-room">${r.room}</span>
+        <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
         <div class="res-line">📞 ${r.phone}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
         <div class="res-status-label ${statusClass}">${statusText}</div>
@@ -535,9 +580,42 @@
       </div>`;
   }
 
+  // ---------------------------------------------------------------
+  // SHARED PERIOD SELECTOR (month/year) — used by Overview, Reservations,
+  // Calendar, and Reports so they all look at the same period.
+  // ---------------------------------------------------------------
+  let selPeriod = { month: new Date().getMonth(), year: new Date().getFullYear() };
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  function buildPeriodSelectHTML(prefix){
+    const years = [selPeriod.year - 1, selPeriod.year, selPeriod.year + 1];
+    return `
+      <select id="${prefix}-month" onchange="setPeriod('month', this.value)">
+        ${MONTH_NAMES.map((m,i) => `<option value="${i}" ${i===selPeriod.month?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select id="${prefix}-year" onchange="setPeriod('year', this.value)">
+        ${years.map(y => `<option value="${y}" ${y===selPeriod.year?'selected':''}>${y}</option>`).join('')}
+      </select>`;
+  }
+
+  function renderPeriodSelectors(){
+    ['period-overview','period-reservations','period-calendar','period-reports'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = buildPeriodSelectHTML(id);
+    });
+  }
+
+  function setPeriod(kind, value){
+    selPeriod[kind] = parseInt(value, 10);
+    renderPeriodSelectors();
+    renderReservations();
+  }
+
   function renderReservations(){
-    const active = reservations.filter(r => !isClosed(r));
-    const closed = reservations.filter(r => isClosed(r));
+    const inPeriod = r => { const c = new Date(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
+    const periodReservations = reservations.filter(inPeriod);
+    const active = periodReservations.filter(r => !isClosed(r));
+    const closed = periodReservations.filter(r => isClosed(r));
 
     document.getElementById('res-grid-active').innerHTML = active.map(r => cardHTML(r, false)).join('') || '';
     document.getElementById('res-grid-closed').innerHTML = closed.map(r => cardHTML(r, true)).join('') || '';
@@ -548,9 +626,9 @@
     const currentList = currentTab === 'active' ? active : closed;
     document.getElementById('res-empty').style.display = currentList.length ? 'none' : 'block';
 
-    // Overview: cards + top stats, based on active reservations
+    // Overview: cards + top stats, based on active reservations for the selected period
     const ovGrid = document.getElementById('overview-res-grid');
-    if (ovGrid) ovGrid.innerHTML = active.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No active reservations.</p>';
+    if (ovGrid) ovGrid.innerHTML = active.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No active reservations for this month.</p>';
 
     const checkedIn = active.filter(r => r.status === 'checkedin').length;
     const toArrive  = active.filter(r => r.status !== 'checkedin').length;
@@ -563,6 +641,7 @@
     setStat('stat-notpaid', notPaid);
 
     renderReports();
+    renderGantt();
   }
 
   function markPaid(id){
@@ -608,14 +687,17 @@
     const checkout = document.getElementById('f-checkout').value;
     if (!guest || !checkin || !checkout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
 
+    const roomNumber = assignRoom(room, checkin, checkout);
+    if (!roomNumber) { alert(`No ${room} rooms are free for those dates.`); return; }
+
     reservations.push({
       id: Date.now(),
-      guest, phone, room,
+      guest, phone, room, roomNumber,
       source: 'direct', // manual entries are always "Direct"
       status: 'reserved',
       checkin, checkout, price: 0
     });
-    // TODO: POST /api/bookings { guest, phone, room, source:'direct', checkin, checkout }
+    // TODO: POST /api/bookings { guest, phone, room, roomNumber, source:'direct', checkin, checkout }
 
     closeAddBooking();
     ['f-guest','f-phone','f-checkin','f-checkout'].forEach(id => document.getElementById(id).value = '');
@@ -692,8 +774,7 @@
     const revEl = document.getElementById('rev-month');
     if (!revEl) return; // reports section not built yet on first call
 
-    const now = new Date();
-    const thisMonth = now.getMonth(), thisYear = now.getFullYear();
+    const thisMonth = selPeriod.month, thisYear = selPeriod.year;
     const countedStatuses = ['paid', 'checkedin'];
 
     const revenueMonth = reservations
@@ -753,9 +834,10 @@
     document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
   }
 
+  renderPeriodSelectors();
   renderReservations();
 
-  // TODO: replace remaining mock table/card data (calendar, rooms, sync log)
+  // TODO: replace remaining mock table/card data (rooms, sync log)
   // with fetch() calls to your backend once connected, e.g.:
   // fetch('/api/rooms').then(r => r.json()).then(renderRooms);
   // fetch('/api/sync-log').then(r => r.json()).then(renderSyncLog);
