@@ -142,6 +142,20 @@
   .modal input,.modal select{width:100%;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:8px 10px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px;}
 
+  .res-card.status-cancelled{border-left-color:var(--red);opacity:0.85;}
+  .res-status-label.status-cancelled{color:var(--red);}
+
+  /* Charts */
+  .bar-chart{display:flex;align-items:flex-end;gap:14px;height:160px;padding-top:10px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .bar-col .bar{width:100%;max-width:36px;background:var(--pine-700);border-radius:5px 5px 0 0;}
+  .bar-col .bar-val{font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;}
+  .bar-col .bar-label{font-size:11px;color:var(--ink-soft);margin-top:6px;}
+  .donut-wrap{display:flex;align-items:center;gap:24px;}
+  .donut-legend{font-size:13px;}
+  .donut-legend div{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .donut-legend .sw{width:10px;height:10px;border-radius:3px;}
+
   @media(max-width:900px){
     .stat-grid{grid-template-columns:repeat(2,1fr);}
     .room-grid{grid-template-columns:1fr;}
@@ -188,39 +202,32 @@
       <section class="section active" id="overview">
         <div class="stat-grid">
           <div class="stat-card">
-            <div class="stat-label">Occupancy today</div>
-            <div class="stat-value">78%</div>
-            <div class="stat-note">7 of 9 rooms occupied</div>
+            <div class="stat-label">Checked in</div>
+            <div class="stat-value" id="stat-checkedin" style="color:var(--pine-700);">–</div>
+            <div class="stat-note">Currently at the property</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Arrivals today</div>
-            <div class="stat-value">3</div>
-            <div class="stat-note">2 via Booking.com, 1 direct</div>
+            <div class="stat-label">Still to arrive</div>
+            <div class="stat-value" id="stat-toarrive" style="color:var(--amber-dark);">–</div>
+            <div class="stat-note">Reserved or paid, not checked in</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Revenue this month</div>
-            <div class="stat-value">18,420 lei</div>
-            <div class="stat-note">↑ 12% vs last month</div>
+            <div class="stat-label">Paid</div>
+            <div class="stat-value" id="stat-paid" style="color:var(--teal);">–</div>
+            <div class="stat-note">Payment received</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Sync status</div>
-            <div class="stat-value" style="color:var(--teal);font-size:18px;">Connected</div>
-            <div class="stat-note">Beds24 · 4 min ago</div>
+            <div class="stat-label">Not paid</div>
+            <div class="stat-value" id="stat-notpaid" style="color:var(--red);">–</div>
+            <div class="stat-note">Still awaiting payment</div>
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Upcoming arrivals</h2>
-            <button class="btn btn-outline" onclick="showSection('reservations')">View all</button>
-          </div>
-          <table>
-            <tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Nights</th><th>Source</th><th>Status</th></tr>
-            <tr><td>Kovács Anna</td><td>Room 2</td><td>Today, 14:00</td><td>3</td><td><span class="badge badge-booking">Booking.com</span></td><td><span class="badge badge-confirmed">Confirmed</span></td></tr>
-            <tr><td>Marius Popescu</td><td>Room 5</td><td>Today, 15:30</td><td>2</td><td><span class="badge badge-phone">Phone</span></td><td><span class="badge badge-confirmed">Confirmed</span></td></tr>
-            <tr><td>Schmidt family</td><td>Apartament</td><td>Tomorrow</td><td>5</td><td><span class="badge badge-site">Direct site</span></td><td><span class="badge badge-pending">Pending</span></td></tr>
-          </table>
+        <div class="panel-head" style="margin-bottom:14px;">
+          <h2 style="font-size:15px;">Active reservations</h2>
+          <button class="btn btn-outline" onclick="showSection('reservations')">View all</button>
         </div>
+        <div class="res-grid" id="overview-res-grid"></div>
       </section>
 
       <!-- CALENDAR -->
@@ -344,20 +351,78 @@
 
       <!-- REPORTS -->
       <section class="section" id="reports">
-        <div class="panel">
-          <div class="panel-head"><h2>Revenue by source — this month</h2></div>
-          <table>
-            <tr><th>Source</th><th>Bookings</th><th>Nights</th><th>Revenue</th></tr>
-            <tr><td><span class="badge badge-booking">Booking.com</span></td><td>24</td><td>61</td><td>11,240 lei</td></tr>
-            <tr><td><span class="badge badge-site">Direct site</span></td><td>6</td><td>19</td><td>3,980 lei</td></tr>
-            <tr><td><span class="badge badge-phone">Phone / manual</span></td><td>9</td><td>22</td><td>3,200 lei</td></tr>
-          </table>
+        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="stat-card">
+            <div class="stat-label">Revenue this month</div>
+            <div class="stat-value" id="rev-month">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Revenue this year</div>
+            <div class="stat-value" id="rev-year">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Expenses this month</div>
+            <div class="stat-value" id="exp-month" style="color:var(--red);">–</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Net this month</div>
+            <div class="stat-value" id="net-month">–</div>
+          </div>
         </div>
+
         <div class="panel">
-          <div class="empty-note">Occupancy trend chart will render here once connected to real booking history.</div>
+          <div class="panel-head"><h2>Reservations per month</h2></div>
+          <div id="chart-reservations"></div>
+        </div>
+
+        <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
+          <div class="panel">
+            <div class="panel-head"><h2>Booking.com vs Direct</h2></div>
+            <div id="chart-source"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>Checked in vs Cancelled</h2></div>
+            <div id="chart-outcome"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Expenses</h2>
+            <button class="btn btn-primary" onclick="openAddExpense()">+ Add expense</button>
+          </div>
+          <table>
+            <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr>
+            <tbody id="expenses-table"></tbody>
+          </table>
+          <p class="empty-note" id="expenses-empty" style="display:none;">No expenses logged yet.</p>
         </div>
       </section>
 
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-expense-modal">
+  <div class="modal">
+    <h2>Add expense</h2>
+    <label>Category</label>
+    <select id="e-category">
+      <option>Groceries</option>
+      <option>Repairs</option>
+      <option>Utilities</option>
+      <option>Supplies</option>
+      <option>Other</option>
+    </select>
+    <label>Note (optional)</label>
+    <input type="text" id="e-note" placeholder="e.g. plumber, Room 3 sink">
+    <label>Amount (lei)</label>
+    <input type="number" id="e-amount" placeholder="0">
+    <label>Date</label>
+    <input type="date" id="e-date">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddExpense()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddExpense()">Add expense</button>
     </div>
   </div>
 </div>
@@ -425,18 +490,20 @@
   }
 
   let reservations = [
-    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2)  },
-    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2)  },
-    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6)  },
-    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7)  },
-    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3) },
-    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8) }
+    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240 },
+    { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680  },
+    { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100 },
+    { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020 },
+    { id: 5, guest: "Nagy Bence",      phone: "+40 730 999 000", room: "Apartament", source: "booking", status: "checkedin", checkin: d(-6), checkout: d(-3), price: 1860 },
+    { id: 6, guest: "Weber family",    phone: "+49 160 222 333", room: "Standard",   source: "booking", status: "checkedin", checkin: d(-10),checkout: d(-8), price: 700  },
+    { id: 7, guest: "Popa Elena",      phone: "+40 728 444 555", room: "Standard",   source: "direct",  status: "cancelled", checkin: d(-2), checkout: d(-1), price: 340  }
   ];
 
-  const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in" };
+  const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in", cancelled: "Cancelled" };
   const sourceLabel = { booking: "Booking.com", direct: "Direct" };
 
   function isClosed(r){
+    if (r.status === 'cancelled') return true;
     return new Date(r.checkout) < new Date(new Date().toDateString());
   }
 
@@ -446,17 +513,20 @@
   }
 
   function cardHTML(r, closed){
-    const statusClass = closed ? 'status-closed' : `status-${r.status}`;
-    const statusText = closed ? 'Closed' : statusLabel[r.status];
+    const statusClass = `status-${r.status}`;
+    const statusText = statusLabel[r.status];
 
     let actions = '';
     if (!closed) {
       if (r.status === 'reserved') {
         actions = `
           <button onclick="markPaid(${r.id})">Mark paid</button>
-          <button class="primary" onclick="markCheckedIn(${r.id}, true)">Check in (pay now)</button>`;
+          <button class="primary" onclick="markCheckedIn(${r.id})">Check in (pay now)</button>
+          <button onclick="markCancelled(${r.id})">Cancel</button>`;
       } else if (r.status === 'paid') {
-        actions = `<button class="primary" onclick="markCheckedIn(${r.id}, false)">Check in</button>`;
+        actions = `
+          <button class="primary" onclick="markCheckedIn(${r.id})">Check in</button>
+          <button onclick="markCancelled(${r.id})">Cancel</button>`;
       }
     }
 
@@ -484,6 +554,22 @@
     const currentTab = document.querySelector('.res-tab.active').dataset.tab;
     const currentList = currentTab === 'active' ? active : closed;
     document.getElementById('res-empty').style.display = currentList.length ? 'none' : 'block';
+
+    // Overview: cards + top stats, based on active reservations
+    const ovGrid = document.getElementById('overview-res-grid');
+    if (ovGrid) ovGrid.innerHTML = active.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No active reservations.</p>';
+
+    const checkedIn = active.filter(r => r.status === 'checkedin').length;
+    const toArrive  = active.filter(r => r.status !== 'checkedin').length;
+    const paid      = active.filter(r => r.status === 'paid' || r.status === 'checkedin').length;
+    const notPaid   = active.filter(r => r.status === 'reserved').length;
+    const setStat = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setStat('stat-checkedin', checkedIn);
+    setStat('stat-toarrive', toArrive);
+    setStat('stat-paid', paid);
+    setStat('stat-notpaid', notPaid);
+
+    renderReports();
   }
 
   function markPaid(id){
@@ -493,11 +579,18 @@
     // TODO: PATCH /api/bookings/{id} { status: 'paid' }
   }
 
-  function markCheckedIn(id, alsoPaid){
+  function markCheckedIn(id){
     const r = reservations.find(x => x.id === id);
     if (r) r.status = 'checkedin'; // checking in always implies paid
     renderReservations();
     // TODO: PATCH /api/bookings/{id} { status: 'checkedin', paid: true }
+  }
+
+  function markCancelled(id){
+    const r = reservations.find(x => x.id === id);
+    if (r && confirm(`Cancel the reservation for ${r.guest}?`)) r.status = 'cancelled';
+    renderReservations();
+    // TODO: PATCH /api/bookings/{id} { status: 'cancelled' }
   }
 
   function showResTab(tab){
@@ -527,7 +620,7 @@
       guest, phone, room,
       source: 'direct', // manual entries are always "Direct"
       status: 'reserved',
-      checkin, checkout
+      checkin, checkout, price: 0
     });
     // TODO: POST /api/bookings { guest, phone, room, source:'direct', checkin, checkout }
 
@@ -536,10 +629,141 @@
     showResTab('active');
   }
 
+  // ---------------------------------------------------------------
+  // EXPENSES — data model
+  // TODO: replace with fetch('/api/expenses') once a backend exists.
+  // ---------------------------------------------------------------
+  let expenses = [
+    { id: 1, date: d(-12), category: "Groceries", note: "Breakfast supplies", amount: 420 },
+    { id: 2, date: d(-8),  category: "Repairs",   note: "Room 3 sink",        amount: 610 },
+    { id: 3, date: d(-3),  category: "Utilities", note: "Electricity",        amount: 980 }
+  ];
+
+  function openAddExpense(){
+    document.getElementById('add-expense-modal').classList.add('open');
+  }
+  function closeAddExpense(){
+    document.getElementById('add-expense-modal').classList.remove('open');
+  }
+  function submitAddExpense(){
+    const category = document.getElementById('e-category').value;
+    const note = document.getElementById('e-note').value.trim();
+    const amount = parseFloat(document.getElementById('e-amount').value);
+    const date = document.getElementById('e-date').value || d(0);
+    if (!amount || amount <= 0) { alert('Please enter a valid amount.'); return; }
+
+    expenses.push({ id: Date.now(), date, category, note, amount });
+    // TODO: POST /api/expenses { category, note, amount, date }
+
+    closeAddExpense();
+    ['e-note','e-amount'].forEach(id => document.getElementById(id).value = '');
+    renderReports();
+  }
+
+  function money(n){ return n.toLocaleString('ro-RO') + ' lei'; }
+
+  function barChart(container, data){
+    const max = Math.max(...data.map(d => d.value), 1);
+    container.innerHTML = `<div class="bar-chart">${data.map(d => `
+      <div class="bar-col">
+        <div class="bar-val">${d.value}</div>
+        <div class="bar" style="height:${(d.value / max * 100) || 2}%;"></div>
+        <div class="bar-label">${d.label}</div>
+      </div>`).join('')}</div>`;
+  }
+
+  function donutChart(container, segments){
+    // segments: [{label, value, color}]
+    const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+    let offset = 0;
+    const r = 46, circ = 2 * Math.PI * r;
+    const circles = segments.map(s => {
+      const frac = s.value / total;
+      const dash = frac * circ;
+      const c = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="16"
+                   stroke-dasharray="${dash} ${circ - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;
+      offset += dash;
+      return c;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120">${circles}</svg>
+        <div class="donut-legend">
+          ${segments.map(s => `<div><span class="sw" style="background:${s.color};"></span>${s.label} — ${s.value} (${Math.round(s.value/total*100)}%)</div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderReports(){
+    const revEl = document.getElementById('rev-month');
+    if (!revEl) return; // reports section not built yet on first call
+
+    const now = new Date();
+    const thisMonth = now.getMonth(), thisYear = now.getFullYear();
+    const countedStatuses = ['paid', 'checkedin'];
+
+    const revenueMonth = reservations
+      .filter(r => countedStatuses.includes(r.status))
+      .filter(r => { const c = new Date(r.checkin); return c.getMonth() === thisMonth && c.getFullYear() === thisYear; })
+      .reduce((s, r) => s + (r.price || 0), 0);
+
+    const revenueYear = reservations
+      .filter(r => countedStatuses.includes(r.status))
+      .filter(r => new Date(r.checkin).getFullYear() === thisYear)
+      .reduce((s, r) => s + (r.price || 0), 0);
+
+    const expenseMonth = expenses
+      .filter(e => { const dt = new Date(e.date); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; })
+      .reduce((s, e) => s + e.amount, 0);
+
+    document.getElementById('rev-month').textContent = money(revenueMonth);
+    document.getElementById('rev-year').textContent = money(revenueYear);
+    document.getElementById('exp-month').textContent = money(expenseMonth);
+    document.getElementById('net-month').textContent = money(revenueMonth - expenseMonth);
+
+    // Reservations per month (mock trailing 6 months using check-in dates + a bit of history)
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const dt = new Date(thisYear, thisMonth - i, 1);
+      months.push({ y: dt.getFullYear(), m: dt.getMonth(), label: monthNames[dt.getMonth()] });
+    }
+    const resPerMonth = months.map(mo => ({
+      label: mo.label,
+      value: reservations.filter(r => { const c = new Date(r.checkin); return c.getMonth() === mo.m && c.getFullYear() === mo.y; }).length
+    }));
+    barChart(document.getElementById('chart-reservations'), resPerMonth);
+
+    // Booking.com vs Direct
+    const bookingCount = reservations.filter(r => r.source === 'booking').length;
+    const directCount = reservations.filter(r => r.source === 'direct').length;
+    donutChart(document.getElementById('chart-source'), [
+      { label: 'Booking.com', value: bookingCount, color: '#3A6FA0' },
+      { label: 'Direct',      value: directCount,  color: '#B4823A' }
+    ]);
+
+    // Checked in vs Cancelled
+    const checkedInCount = reservations.filter(r => r.status === 'checkedin').length;
+    const cancelledCount = reservations.filter(r => r.status === 'cancelled').length;
+    donutChart(document.getElementById('chart-outcome'), [
+      { label: 'Checked in', value: checkedInCount, color: '#26503C' },
+      { label: 'Cancelled',  value: cancelledCount, color: '#B4453A' }
+    ]);
+
+    // Expenses table
+    const tbody = document.getElementById('expenses-table');
+    const sorted = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date));
+    tbody.innerHTML = sorted.map(e => `
+      <tr><td>${fmtDate(e.date)}</td><td>${e.category}</td><td>${e.note || '—'}</td><td>${money(e.amount)}</td></tr>
+    `).join('');
+    document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
+  }
+
   renderReservations();
 
-  // TODO: replace remaining mock table/card data (overview, calendar, rooms,
-  // sync log, reports) with fetch() calls to your backend once connected, e.g.:
+  // TODO: replace remaining mock table/card data (calendar, rooms, sync log)
+  // with fetch() calls to your backend once connected, e.g.:
   // fetch('/api/rooms').then(r => r.json()).then(renderRooms);
   // fetch('/api/sync-log').then(r => r.json()).then(renderSyncLog);
 </script>
