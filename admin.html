@@ -146,6 +146,7 @@
   .extra-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);}
   .extra-row button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:2px 6px;}
   .res-extras-summary{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .service-badge{display:inline-block;font-size:11px;font-weight:600;color:var(--amber-dark);background:var(--amber-bg);border-radius:20px;padding:2px 9px;margin-right:6px;}
   .stock-low{color:var(--red);font-weight:700;}
 
   .res-card.status-cancelled{border-left-color:var(--red);opacity:0.85;}
@@ -233,7 +234,6 @@
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
       <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Reservations</button>
       <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Rooms &amp; pricing</button>
-      <button class="nav-btn" data-section="inventory"><span class="nav-dot"></span>Inventory</button>
       <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Sync status</button>
       <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Reports</button>
     </nav>
@@ -340,18 +340,19 @@
           <div class="room-card">
             <h3>Standard</h3>
             <div class="stat-note" style="margin-bottom:4px;">7 rooms of this type · No. 2–8</div>
-            <div class="price">340 lei <span>/ night base</span></div>
+            <div class="price"><input type="number" id="room-price-Standard" value="340" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Standard', this.value)"> <span>lei / night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="390"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
           </div>
           <div class="room-card">
             <h3>Apartament</h3>
             <div class="stat-note" style="margin-bottom:4px;">2 apartments of this type · No. 1, 9</div>
-            <div class="price">620 lei <span>/ night base</span></div>
+            <div class="price"><input type="number" id="room-price-Apartament" value="620" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Apartament', this.value)"> <span>lei / night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="700"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
           </div>
         </div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">This base rate is also what's used to price an extended stay automatically.</p>
         <div style="margin-top:18px;margin-bottom:28px;">
           <button class="btn btn-primary">Save &amp; push to Booking.com</button>
         </div>
@@ -371,18 +372,6 @@
           <table>
             <tr><th>Item</th><th>Price (lei)</th></tr>
             <tbody id="minibar-pricing-table"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- INVENTORY -->
-      <section class="section" id="inventory">
-        <div class="panel">
-          <div class="panel-head"><h2>Minibar stock</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock goes down automatically when you add a minibar item to a guest's reservation. Restock here after refilling rooms.</p>
-          <table>
-            <tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr>
-            <tbody id="inventory-table"></tbody>
           </table>
         </div>
       </section>
@@ -466,6 +455,15 @@
             <tbody id="expenses-table"></tbody>
           </table>
           <p class="empty-note" id="expenses-empty" style="display:none;">No expenses logged yet.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Minibar inventory</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock drops automatically when a minibar item is added to a guest's reservation. Restock here after refilling rooms — prices are set on the Rooms &amp; Pricing page.</p>
+          <table>
+            <tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr>
+            <tbody id="inventory-table"></tbody>
+          </table>
         </div>
       </section>
 
@@ -584,7 +582,6 @@
     calendar:     ["Calendar", "Aug 21 – Sep 3"],
     reservations: ["Reservations", "All bookings across every source"],
     rooms:        ["Rooms & pricing", "4 room types"],
-    inventory:    ["Inventory", "Minibar stock"],
     sync:         ["Sync status", "Beds24 ↔ Booking.com"],
     reports:      ["Reports", "This month"]
   };
@@ -597,7 +594,7 @@
     document.getElementById('page-title').textContent = meta[id][0];
     document.getElementById('page-sub').textContent = meta[id][1];
 
-    const hideAddBooking = (id === 'reports' || id === 'sync' || id === 'rooms' || id === 'inventory');
+    const hideAddBooking = (id === 'reports' || id === 'sync' || id === 'rooms');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
     document.querySelector('.content').scrollTop = 0;
@@ -690,6 +687,10 @@
   // TODO: replace with fetch('/api/catalog') once a backend exists.
   // ---------------------------------------------------------------
   let catalog = {
+    rooms: {
+      Standard:   { price: 340 },
+      Apartament: { price: 620 }
+    },
     services: [
       { id: 'massage', name: 'Massage', price: 120 },
       { id: 'sauna',   name: 'Sauna',   price: 80  }
@@ -703,6 +704,15 @@
 
   function findCatalogItem(type, id){
     return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
+  }
+
+  function roomRate(roomType){
+    return (catalog.rooms[roomType] && catalog.rooms[roomType].price) || 0;
+  }
+
+  function updateRoomPrice(roomType, value){
+    if (catalog.rooms[roomType]) catalog.rooms[roomType].price = parseFloat(value) || 0;
+    // TODO: PATCH /api/catalog/rooms/{roomType} { price }
   }
 
   function extrasTotal(r){
@@ -736,6 +746,91 @@
       if (!roomHasConflict(num, checkin, checkout, excludeId)) return num;
     }
     return null; // fully booked for those dates
+  }
+
+  // Finds the specific reservation blocking a room for a date range, so
+  // we can name it in an error message instead of a generic "unavailable".
+  function roomBlocker(roomNumber, checkin, checkout, excludeId){
+    const s = parseLocalDate(checkin), e = parseLocalDate(checkout);
+    return reservations.find(r =>
+      r.id !== excludeId && r.roomNumber === roomNumber && r.status !== 'cancelled' &&
+      s < parseLocalDate(r.checkout) && parseLocalDate(r.checkin) < e
+    );
+  }
+
+  // ---------------------------------------------------------------
+  // EXTEND STAY — a guest already at the property decides to stay
+  // longer. Checks the room is actually free for the extra night(s),
+  // then bills the extension at the room's current nightly rate and
+  // flags that payment may still be owed for it.
+  // ---------------------------------------------------------------
+  function extendStay(id){
+    const r = reservations.find(x => x.id === id);
+    if (!r) return;
+
+    const suggested = localISODate(addDays(parseLocalDate(r.checkout), 1));
+    const input = prompt(`Current checkout is ${fmtDate(r.checkout)}. Enter the new checkout date (YYYY-MM-DD):`, suggested);
+    if (!input) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Please enter a valid date in YYYY-MM-DD format.'); return; }
+
+    const newCheckoutDate = parseLocalDate(input);
+    const oldCheckoutDate = parseLocalDate(r.checkout);
+    if (newCheckoutDate <= oldCheckoutDate) { alert('The new checkout date must be after the current one.'); return; }
+
+    const blocker = roomBlocker(r.roomNumber, r.checkin, input, r.id);
+    if (blocker) {
+      alert(`Can't extend — Room ${r.roomNumber} is already booked by ${blocker.guest} starting ${fmtDate(blocker.checkin)}. You could move this guest to a different available room instead, using Edit.`);
+      return;
+    }
+
+    const nights = Math.round((newCheckoutDate - oldCheckoutDate) / 86400000);
+    const rate = roomRate(r.room);
+    const extraCharge = nights * rate;
+
+    r.extras = r.extras || [];
+    r.extras.push({ catalogId: null, type: 'extension', name: 'Extra night', price: rate, qty: nights });
+    r.checkout = input;
+    // TODO: PATCH /api/bookings/{id} { checkout, extras } — and ideally re-sync
+    // availability to Beds24/Booking.com for the extended date range.
+
+    renderReservations();
+
+    const owesReminder = (r.status === 'paid' || r.status === 'checkedin')
+      ? ` This reservation is already marked "${statusLabel[r.status]}" — the extra ${nights} night(s) aren't automatically marked paid, so make sure to collect ${extraCharge} lei from the guest.`
+      : '';
+    alert(`Stay extended to ${fmtDate(input)} for Room ${r.roomNumber}. Extra charge: ${nights} night(s) × ${rate} lei = ${extraCharge} lei.${owesReminder}`);
+  }
+
+  // ---------------------------------------------------------------
+  // LEAVE EARLY — the opposite case: a checked-in guest departs before
+  // their booked checkout date. No price reduction (per policy) — this
+  // just corrects the checkout date so the room frees up correctly for
+  // new bookings, and leaves a note on the reservation for the record.
+  // ---------------------------------------------------------------
+  function shortenStay(id){
+    const r = reservations.find(x => x.id === id);
+    if (!r) return;
+
+    const suggested = localISODate(addDays(parseLocalDate(r.checkout), -1));
+    const input = prompt(`Current checkout is ${fmtDate(r.checkout)}. Enter the earlier checkout date (YYYY-MM-DD):`, suggested);
+    if (!input) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Please enter a valid date in YYYY-MM-DD format.'); return; }
+
+    const newCheckoutDate = parseLocalDate(input);
+    const oldCheckoutDate = parseLocalDate(r.checkout);
+    const checkinDate = parseLocalDate(r.checkin);
+    if (newCheckoutDate <= checkinDate) { alert('The new checkout date must be after the check-in date.'); return; }
+    if (newCheckoutDate >= oldCheckoutDate) { alert("That date isn't earlier than the current checkout — use Extend stay instead if they're staying longer."); return; }
+
+    const nightsReduced = Math.round((oldCheckoutDate - newCheckoutDate) / 86400000);
+    r.extras = r.extras || [];
+    r.extras.push({ catalogId: null, type: 'shortened', name: `Left ${nightsReduced} night(s) early (no refund)`, price: 0, qty: 1 });
+    r.checkout = input;
+    // TODO: PATCH /api/bookings/{id} { checkout, extras } — and re-sync
+    // availability to Beds24/Booking.com so the room shows free sooner.
+
+    renderReservations();
+    alert(`Checkout moved to ${fmtDate(input)}. No price reduction was applied — the original stay remains fully charged. Room ${r.roomNumber} is now free again starting ${fmtDate(input)}.`);
   }
 
   const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in", cancelled: "Cancelled" };
@@ -867,6 +962,10 @@
         actions = `
           <button class="primary" onclick="markCheckedIn(${r.id})">Check in</button>
           <button onclick="markCancelled(${r.id})">Cancel</button>`;
+      } else if (r.status === 'checkedin') {
+        actions = `
+          <button onclick="extendStay(${r.id})">+ Extend stay</button>
+          <button onclick="shortenStay(${r.id})">− Leave early</button>`;
       }
     }
 
@@ -874,6 +973,11 @@
     const linkedBadge = linked.length > 1
       ? `<span class="multi-room-badge" title="Booked together: ${linked.map(x => 'Nr. ' + x.roomNumber).join(', ')}">🔗 ${linked.length} rooms</span>`
       : '';
+
+    const SERVICE_ICONS = { massage: '💆', sauna: '🧖' };
+    const serviceBadges = (r.extras || []).filter(e => e.type === 'service').map(e =>
+      `<span class="service-badge">${SERVICE_ICONS[e.catalogId] || '✨'} ${e.name}</span>`
+    ).join('');
 
     const extrasSum = extrasTotal(r);
     const extrasLine = extrasSum > 0
@@ -888,6 +992,7 @@
         <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
         <div class="res-line">📞 ${r.phone}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
+        ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
         ${extrasLine}
         <div class="res-status-label ${statusClass}">${statusText}</div>
         <div class="res-actions">${actions}</div>
