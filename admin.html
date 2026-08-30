@@ -225,16 +225,16 @@
       <span>Admin · Sovata</span>
     </div>
     <nav id="nav">
-      <button class="nav-btn active" data-section="overview"><span class="nav-dot"></span>Overview</button>
+      <button class="nav-btn active" data-section="overview"><span class="nav-dot"></span>Prezentare generală</button>
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
-      <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Reservations</button>
-      <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Rooms &amp; pricing</button>
-      <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Sync status</button>
-      <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Reports</button>
+      <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Rezervări</button>
+      <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Camere &amp; tarife</button>
+      <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Stare sincronizare</button>
+      <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Rapoarte</button>
     </nav>
     <div class="sidebar-foot">
-      Connected via Beds24
-      <div class="sync-pill"><span class="dot"></span> Last sync 4 min ago</div>
+      Conectat prin Beds24
+      <div class="sync-pill"><span class="dot"></span> Ultima sincronizare acum 4 min</div>
     </div>
   </aside>
 
@@ -243,15 +243,15 @@
   <div class="main">
     <div class="topbar">
       <div style="display:flex;align-items:center;">
-        <button class="menu-toggle" onclick="toggleSidebar(true)" aria-label="Open menu"><span></span><span></span><span></span></button>
+        <button class="menu-toggle" onclick="toggleSidebar(true)" aria-label="Deschide meniul"><span></span><span></span><span></span></button>
         <div>
-          <h1 id="page-title">Overview</h1>
-          <div class="topbar-sub" id="page-sub">Today, all rooms</div>
+          <h1 id="page-title">Prezentare generală</h1>
+          <div class="topbar-sub" id="page-sub">Astăzi, toate camerele</div>
         </div>
       </div>
       <div class="topbar-controls" style="display:flex;gap:10px;align-items:center;">
         <div class="period-select" id="topbar-period"></div>
-        <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Add booking</button>
+        <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Adaugă rezervare</button>
       </div>
     </div>
 
@@ -261,30 +261,30 @@
       <section class="section active" id="overview">
         <div class="stat-grid">
           <div class="stat-card filterable" id="stat-card-checkedin" onclick="setOverviewFilter('checkedin')">
-            <div class="stat-label">Checked in</div>
+            <div class="stat-label">Cazați</div>
             <div class="stat-value" id="stat-checkedin" style="color:var(--pine-700);">–</div>
-            <div class="stat-note">Currently at the property</div>
+            <div class="stat-note">Prezenți acum la proprietate</div>
           </div>
           <div class="stat-card filterable" id="stat-card-toarrive" onclick="setOverviewFilter('toarrive')">
-            <div class="stat-label">Still to arrive</div>
+            <div class="stat-label">Urmează să sosească</div>
             <div class="stat-value" id="stat-toarrive" style="color:var(--amber-dark);">–</div>
-            <div class="stat-note">Reserved or paid, not checked in</div>
+            <div class="stat-note">Rezervat sau plătit, necazat încă</div>
           </div>
           <div class="stat-card filterable" id="stat-card-paid" onclick="setOverviewFilter('paid')">
-            <div class="stat-label">Paid</div>
+            <div class="stat-label">Plătit</div>
             <div class="stat-value" id="stat-paid" style="color:var(--teal);">–</div>
-            <div class="stat-note">Payment received</div>
+            <div class="stat-note">Plată încasată</div>
           </div>
           <div class="stat-card filterable" id="stat-card-notpaid" onclick="setOverviewFilter('notpaid')">
-            <div class="stat-label">Not paid</div>
+            <div class="stat-label">Neplătit</div>
             <div class="stat-value" id="stat-notpaid" style="color:var(--red);">–</div>
-            <div class="stat-note">Still awaiting payment</div>
+            <div class="stat-note">În așteptarea plății</div>
           </div>
         </div>
 
         <div class="panel-head" style="margin-bottom:14px;">
-          <h2 style="font-size:15px;" id="overview-list-title">Active reservations</h2>
-          <button class="btn btn-outline" onclick="showSection('reservations')">View all</button>
+          <h2 style="font-size:15px;" id="overview-list-title">Rezervări active</h2>
+          <button class="btn btn-outline" onclick="showSection('reservations')">Vezi tot</button>
         </div>
         <div class="res-grid" id="overview-res-grid"></div>
       </section>
@@ -297,12 +297,12 @@
             <span><i class="sw" style="background:var(--amber);"></i>Direct</span>
           </div>
           <div class="gantt-nav">
-            <button class="btn btn-outline" onclick="shiftGantt(-1)">‹ Prev</button>
-            <button class="btn btn-outline" onclick="jumpGanttToday()">Today</button>
-            <button class="btn btn-outline" onclick="shiftGantt(1)">Next ›</button>
+            <button class="btn btn-outline" onclick="shiftGantt(-1)">‹ Anterior</button>
+            <button class="btn btn-outline" onclick="jumpGanttToday()">Azi</button>
+            <button class="btn btn-outline" onclick="shiftGantt(1)">Următor ›</button>
             <select id="gantt-viewmode" onchange="setGanttView(this.value)">
-              <option value="week">Week view</option>
-              <option value="month" selected>Month view</option>
+              <option value="week">Vizualizare săptămână</option>
+              <option value="month" selected>Vizualizare lună</option>
             </select>
           </div>
         </div>
@@ -310,7 +310,7 @@
         <div class="panel" style="padding:0;">
           <div id="gantt"></div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Scrolls continuously — a stay is never cut off at a month boundary. Bars are colored by source and labeled with the guest's first name.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Derulare continuă — un sejur nu este niciodată întrerupt la limita dintre luni. Barele sunt colorate după sursă și etichetate cu prenumele oaspetelui.</p>
       </section>
 
       <!-- RESERVATIONS -->
@@ -318,15 +318,15 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
           <div class="res-tabs">
             <button class="res-tab active" data-tab="active" onclick="showResTab('active')">Active <span class="count" id="count-active"></span></button>
-            <button class="res-tab" data-tab="closed" onclick="showResTab('closed')">Closed <span class="count" id="count-closed"></span></button>
+            <button class="res-tab" data-tab="closed" onclick="showResTab('closed')">Închise <span class="count" id="count-closed"></span></button>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
-            <button class="btn btn-primary" onclick="openAddBooking()">+ Add booking</button>
+            <button class="btn btn-primary" onclick="openAddBooking()">+ Adaugă rezervare</button>
           </div>
         </div>
         <div class="res-grid" id="res-grid-active"></div>
         <div class="res-grid" id="res-grid-closed" style="display:none;"></div>
-        <p class="empty-note" id="res-empty" style="display:none;">No reservations for this month yet.</p>
+        <p class="empty-note" id="res-empty" style="display:none;">Nicio rezervare în această lună încă.</p>
       </section>
 
       <!-- ROOMS & PRICING -->
@@ -334,38 +334,38 @@
         <div class="room-grid" style="grid-template-columns:repeat(2,1fr);max-width:700px;">
           <div class="room-card">
             <h3>Standard</h3>
-            <div class="stat-note" style="margin-bottom:4px;">7 rooms of this type · No. 2–8</div>
-            <div class="price"><input type="number" id="room-price-Standard" value="340" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Standard', this.value)"> <span>lei / night base</span></div>
-            <div class="field-row">Weekend rate <input type="number" value="390"></div>
-            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
+            <div class="stat-note" style="margin-bottom:4px;">7 camere de acest tip · Nr. 2–8</div>
+            <div class="price"><input type="number" id="room-price-Standard" value="340" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Standard', this.value)"> <span>lei / noapte, bază</span></div>
+            <div class="field-row">Tarif weekend <input type="number" value="390"></div>
+            <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
           </div>
           <div class="room-card">
             <h3>Apartament</h3>
-            <div class="stat-note" style="margin-bottom:4px;">2 apartments of this type · No. 1, 9</div>
-            <div class="price"><input type="number" id="room-price-Apartament" value="620" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Apartament', this.value)"> <span>lei / night base</span></div>
-            <div class="field-row">Weekend rate <input type="number" value="700"></div>
-            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
+            <div class="stat-note" style="margin-bottom:4px;">2 apartamente de acest tip · Nr. 1, 9</div>
+            <div class="price"><input type="number" id="room-price-Apartament" value="620" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Apartament', this.value)"> <span>lei / noapte, bază</span></div>
+            <div class="field-row">Tarif weekend <input type="number" value="700"></div>
+            <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
           </div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">This base rate is also what's used to price an extended stay automatically.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">Acest tarif de bază este folosit și pentru a calcula automat prețul unui sejur prelungit.</p>
         <div style="margin-top:18px;margin-bottom:28px;">
-          <button class="btn btn-primary">Save &amp; push to Booking.com</button>
+          <button class="btn btn-primary">Salvează și trimite la Booking.com</button>
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Services pricing</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">These prices are used automatically when you add a service to a guest's reservation.</p>
+          <div class="panel-head"><h2>Tarife servicii</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Aceste prețuri sunt folosite automat când adaugi un serviciu la rezervarea unui oaspete.</p>
           <table>
-            <tr><th>Service</th><th>Price (lei)</th></tr>
+            <tr><th>Serviciu</th><th>Preț (lei)</th></tr>
             <tbody id="services-pricing-table"></tbody>
           </table>
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Minibar pricing</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock levels are managed on the Inventory page — prices here apply everywhere, including there.</p>
+          <div class="panel-head"><h2>Tarife minibar</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocurile se gestionează pe pagina Rapoarte — prețurile de aici se aplică peste tot, inclusiv acolo.</p>
           <table>
-            <tr><th>Item</th><th>Price (lei)</th></tr>
+            <tr><th>Produs</th><th>Preț (lei)</th></tr>
             <tbody id="minibar-pricing-table"></tbody>
           </table>
         </div>
@@ -374,31 +374,31 @@
       <!-- SYNC STATUS -->
       <section class="section" id="sync">
         <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-          <button class="btn btn-outline">Force sync</button>
+          <button class="btn btn-outline">Sincronizare forțată</button>
         </div>
         <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
           <div class="stat-card">
-            <div class="stat-label">Connection</div>
-            <div class="stat-value" style="color:var(--teal);font-size:18px;">● Healthy</div>
+            <div class="stat-label">Conexiune</div>
+            <div class="stat-value" style="color:var(--teal);font-size:18px;">● Funcțională</div>
             <div class="stat-note">Beds24 ↔ Booking.com</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Last successful sync</div>
-            <div class="stat-value" style="font-size:18px;">4 minutes ago</div>
+            <div class="stat-label">Ultima sincronizare reușită</div>
+            <div class="stat-value" style="font-size:18px;">Acum 4 minute</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Sync interval</div>
-            <div class="stat-value" style="font-size:18px;">Every 5 min</div>
+            <div class="stat-label">Interval sincronizare</div>
+            <div class="stat-value" style="font-size:18px;">La fiecare 5 min</div>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h2>Sync log</h2></div>
+          <div class="panel-head"><h2>Jurnal sincronizare</h2></div>
           <table>
-            <tr><th>Time</th><th>Direction</th><th>Detail</th><th>Result</th></tr>
-            <tr><td>14:32</td><td>Booking.com → site</td><td>Room 2 availability updated (3 dates)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:27</td><td>Site → Booking.com</td><td>Room 1 price updated</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:22</td><td>Booking.com → site</td><td>New booking imported (Kovács Anna)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:17</td><td>Booking.com → site</td><td>Availability sync</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><th>Oră</th><th>Direcție</th><th>Detaliu</th><th>Rezultat</th></tr>
+            <tr><td>14:32</td><td>Booking.com → site</td><td>Disponibilitate Cameră 2 actualizată (3 date)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:27</td><td>Site → Booking.com</td><td>Preț Cameră 1 actualizat</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:22</td><td>Booking.com → site</td><td>Rezervare nouă importată (Kovács Anna)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
+            <tr><td>14:17</td><td>Booking.com → site</td><td>Sincronizare disponibilitate</td><td><span class="badge badge-confirmed">OK</span></td></tr>
           </table>
         </div>
       </section>
@@ -407,25 +407,25 @@
       <section class="section" id="reports">
         <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
           <div class="stat-card">
-            <div class="stat-label">Revenue selected month</div>
+            <div class="stat-label">Venit luna selectată</div>
             <div class="stat-value" id="rev-month">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Revenue selected year</div>
+            <div class="stat-label">Venit anul selectat</div>
             <div class="stat-value" id="rev-year">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Expenses selected month</div>
+            <div class="stat-label">Cheltuieli luna selectată</div>
             <div class="stat-value" id="exp-month" style="color:var(--red);">–</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Net selected month</div>
+            <div class="stat-label">Net luna selectată</div>
             <div class="stat-value" id="net-month">–</div>
           </div>
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Reservations per month</h2></div>
+          <div class="panel-head"><h2>Rezervări pe lună</h2></div>
           <div id="chart-reservations"></div>
         </div>
 
@@ -435,28 +435,28 @@
             <div id="chart-source"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h2>Checked in vs Cancelled</h2></div>
+            <div class="panel-head"><h2>Cazați vs Anulate</h2></div>
             <div id="chart-outcome"></div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Expenses</h2>
-            <button class="btn btn-primary" onclick="openAddExpense()">+ Add expense</button>
+            <h2>Cheltuieli</h2>
+            <button class="btn btn-primary" onclick="openAddExpense()">+ Adaugă cheltuială</button>
           </div>
           <table>
-            <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr>
+            <tr><th>Dată</th><th>Categorie</th><th>Notă</th><th>Sumă</th></tr>
             <tbody id="expenses-table"></tbody>
           </table>
-          <p class="empty-note" id="expenses-empty" style="display:none;">No expenses logged yet.</p>
+          <p class="empty-note" id="expenses-empty" style="display:none;">Nicio cheltuială înregistrată încă.</p>
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Minibar inventory</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stock drops automatically when a minibar item is added to a guest's reservation. Restock here after refilling rooms — prices are set on the Rooms &amp; Pricing page.</p>
+          <div class="panel-head"><h2>Inventar minibar</h2></div>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocul scade automat când un produs de minibar este adăugat la rezervarea unui oaspete. Realimentează aici după ce completezi camerele — prețurile se setează pe pagina Camere &amp; tarife.</p>
           <table>
-            <tr><th>Item</th><th>Price</th><th>In stock</th><th></th></tr>
+            <tr><th>Produs</th><th>Preț</th><th>În stoc</th><th></th></tr>
             <tbody id="inventory-table"></tbody>
           </table>
         </div>
@@ -468,130 +468,130 @@
 
 <div class="modal-backdrop" id="add-expense-modal">
   <div class="modal">
-    <h2>Add expense</h2>
-    <label>Category</label>
+    <h2>Adaugă cheltuială</h2>
+    <label>Categorie</label>
     <select id="e-category">
-      <option>Groceries</option>
-      <option>Repairs</option>
-      <option>Utilities</option>
-      <option>Supplies</option>
-      <option>Other</option>
+      <option>Alimente</option>
+      <option>Reparații</option>
+      <option>Utilități</option>
+      <option>Consumabile</option>
+      <option>Altele</option>
     </select>
-    <label>Note (optional)</label>
-    <input type="text" id="e-note" placeholder="e.g. plumber, Room 3 sink">
-    <label>Amount (lei)</label>
+    <label>Notă (opțional)</label>
+    <input type="text" id="e-note" placeholder="ex: instalator, chiuvetă camera 3">
+    <label>Sumă (lei)</label>
     <input type="number" id="e-amount" placeholder="0">
-    <label>Date</label>
+    <label>Dată</label>
     <input type="date" id="e-date">
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeAddExpense()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitAddExpense()">Add expense</button>
+      <button class="btn btn-outline" onclick="closeAddExpense()">Anulează</button>
+      <button class="btn btn-primary" onclick="submitAddExpense()">Adaugă cheltuială</button>
     </div>
   </div>
 </div>
 
 <div class="modal-backdrop" id="date-adjust-modal">
   <div class="modal">
-    <h2 id="da-title">Extend stay</h2>
+    <h2 id="da-title">Prelungește sejurul</h2>
     <p id="da-info" style="font-size:13px;color:var(--ink-soft);margin:0 0 4px;"></p>
-    <label>New checkout date</label>
+    <label>Noua dată de check-out</label>
     <input type="date" id="da-date">
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeDateAdjust()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitDateAdjust()">Confirm</button>
+      <button class="btn btn-outline" onclick="closeDateAdjust()">Anulează</button>
+      <button class="btn btn-primary" onclick="submitDateAdjust()">Confirmă</button>
     </div>
   </div>
 </div>
 
 <div class="modal-backdrop" id="add-booking-modal">
   <div class="modal">
-    <h2>Add booking</h2>
-    <label>Guest name</label>
-    <input type="text" id="f-guest" placeholder="e.g. Ionescu Radu">
-    <label>Phone number</label>
+    <h2>Adaugă rezervare</h2>
+    <label>Nume oaspete</label>
+    <input type="text" id="f-guest" placeholder="ex: Ionescu Radu">
+    <label>Număr de telefon</label>
     <input type="text" id="f-phone" placeholder="+40 7...">
     <label>Check-in</label>
     <input type="date" id="f-checkin">
     <label>Check-out</label>
     <input type="date" id="f-checkout">
-    <label>Room(s)</label>
+    <label>Cameră/Camere</label>
     <div id="f-room-lines"></div>
-    <button type="button" class="btn btn-outline" style="margin-top:8px;font-size:12px;padding:6px 12px;" onclick="addRoomLine()">+ Add another room</button>
+    <button type="button" class="btn btn-outline" style="margin-top:8px;font-size:12px;padding:6px 12px;" onclick="addRoomLine()">+ Adaugă altă cameră</button>
     <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeAddBooking()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitAddBooking()">Add reservation</button>
+      <button class="btn btn-outline" onclick="closeAddBooking()">Anulează</button>
+      <button class="btn btn-primary" onclick="submitAddBooking()">Adaugă rezervare</button>
     </div>
   </div>
 </div>
 
 <div class="modal-backdrop" id="edit-reservation-modal">
   <div class="modal">
-    <h2>Edit reservation</h2>
-    <label>Guest name</label>
+    <h2>Editează rezervarea</h2>
+    <label>Nume oaspete</label>
     <input type="text" id="e2-guest">
-    <label>Phone number</label>
+    <label>Număr de telefon</label>
     <input type="text" id="e2-phone">
-    <label>Room type</label>
+    <label>Tip cameră</label>
     <select id="e2-roomtype" onchange="populateRoomNumberOptions(this.value, null)">
       <option value="Standard">Standard</option>
       <option value="Apartament">Apartament</option>
     </select>
-    <label>Room number</label>
+    <label>Număr cameră</label>
     <select id="e2-roomnumber"></select>
     <label>Check-in</label>
     <input type="date" id="e2-checkin">
     <label>Check-out</label>
     <input type="date" id="e2-checkout">
-    <label>Source</label>
+    <label>Sursă</label>
     <select id="e2-source">
       <option value="booking">Booking.com</option>
       <option value="direct">Direct</option>
     </select>
-    <label>Status</label>
+    <label>Stare</label>
     <select id="e2-status">
-      <option value="reserved">Reserved</option>
-      <option value="paid">Paid</option>
-      <option value="checkedin">Checked in</option>
-      <option value="cancelled">Cancelled</option>
+      <option value="reserved">Rezervat</option>
+      <option value="paid">Plătit</option>
+      <option value="checkedin">Cazat</option>
+      <option value="cancelled">Anulat</option>
     </select>
-    <label>Room price (lei)</label>
+    <label>Preț cameră (lei)</label>
     <input type="number" id="e2-price">
 
-    <label style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">Extras for this guest</label>
+    <label style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">Extra pentru acest oaspete</label>
     <div id="e2-extras-list" style="font-size:13px;"></div>
 
     <div style="display:flex;gap:6px;margin-top:10px;align-items:center;">
       <select id="e2-service-select" style="flex:1;"></select>
       <input type="number" id="e2-service-qty" value="1" min="1" style="width:52px;">
-      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('service')">+ Add</button>
+      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('service')">+ Adaugă</button>
     </div>
     <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
       <select id="e2-minibar-select" style="flex:1;"></select>
       <input type="number" id="e2-minibar-qty" value="1" min="1" style="width:52px;">
-      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('minibar')">+ Add</button>
+      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('minibar')">+ Adaugă</button>
     </div>
 
     <div class="modal-actions" style="justify-content:space-between;">
-      <button class="btn btn-outline" style="color:var(--red);border-color:var(--red);" onclick="deleteReservationConfirm()">Delete</button>
+      <button class="btn btn-outline" style="color:var(--red);border-color:var(--red);" onclick="deleteReservationConfirm()">Șterge</button>
       <div style="display:flex;gap:10px;">
-        <button class="btn btn-outline" onclick="closeEditReservation()">Cancel</button>
-        <button class="btn btn-primary" onclick="submitEditReservation()">Save changes</button>
+        <button class="btn btn-outline" onclick="closeEditReservation()">Anulează</button>
+        <button class="btn btn-primary" onclick="submitEditReservation()">Salvează modificările</button>
       </div>
     </div>
   </div>
 </div>
 
-<button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Back to top">↑</button>
+<button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Înapoi sus">↑</button>
 
 <script>
   // Section titles + subtitles shown in the topbar per section
   const meta = {
-    overview:     ["Overview", "Today, all rooms"],
-    calendar:     ["Calendar", "Aug 21 – Sep 3"],
-    reservations: ["Reservations", "All bookings across every source"],
-    rooms:        ["Rooms & pricing", "4 room types"],
-    sync:         ["Sync status", "Beds24 ↔ Booking.com"],
-    reports:      ["Reports", "This month"]
+    overview:     ["Prezentare generală", "Astăzi, toate camerele"],
+    calendar:     ["Calendar", "Toate camerele"],
+    reservations: ["Rezervări", "Toate rezervările, din orice sursă"],
+    rooms:        ["Camere & tarife", "2 tipuri de cameră"],
+    sync:         ["Stare sincronizare", "Beds24 ↔ Booking.com"],
+    reports:      ["Rapoarte", "Luna aceasta"]
   };
 
   function showSection(id, fromHistory){
@@ -700,24 +700,18 @@
       Apartament: { price: 620 }
     },
     services: [
-      { id: 'massage', name: 'Massage', price: 120 },
-      { id: 'sauna',   name: 'Sauna',   price: 80  }
+      { id: 'massage', name: 'Masaj', price: 120 },
+      { id: 'sauna',   name: 'Saună', price: 80  }
     ],
     minibar: [
-      { id: 'cola',   name: 'Cola',   price: 10, stock: 24 },
-      { id: 'water',  name: 'Water',  price: 6,  stock: 30 },
-      { id: 'snacks', name: 'Snacks', price: 12, stock: 20 }
+      { id: 'cola',   name: 'Cola',    price: 10, stock: 24 },
+      { id: 'water',  name: 'Apă',     price: 6,  stock: 30 },
+      { id: 'snacks', name: 'Gustări', price: 12, stock: 20 }
     ]
   };
 
   function findCatalogItem(type, id){
     return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
-  }
-
-  function escapeHTML(value){
-    return String(value ?? '').replace(/[&<>'"]/g, char => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-    })[char]);
   }
 
   function roomRate(roomType){
@@ -734,7 +728,7 @@
   }
 
   let reservations = [
-    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240, extras: [{catalogId:'sauna', type:'service', name:'Sauna', price:80, qty:1}] },
+    { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240, extras: [{catalogId:'sauna', type:'service', name:'Saună', price:80, qty:1}] },
     { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   roomNumber: 3, source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680,  extras: [] },
     { id: 3, guest: "Schmidt family",  phone: "+49 171 555 666", room: "Apartament", roomNumber: 1, source: "direct",  status: "reserved",  checkin: d(1),  checkout: d(6),  price: 3100, extras: [] },
     { id: 4, guest: "Ionescu Radu",    phone: "+40 722 777 888", room: "Standard",   roomNumber: 4, source: "direct",  status: "reserved",  checkin: d(4),  checkout: d(7),  price: 1020, extras: [] },
@@ -787,8 +781,8 @@
     dateAdjustMode = 'extend';
     dateAdjustId = id;
 
-    document.getElementById('da-title').textContent = 'Extend stay';
-    document.getElementById('da-info').textContent = `Room ${r.roomNumber} · current checkout is ${fmtDate(r.checkout)}. Choose the new, later checkout date — the extra night(s) will be billed at the room's current rate.`;
+    document.getElementById('da-title').textContent = 'Prelungește sejurul';
+    document.getElementById('da-info').textContent = `Camera ${r.roomNumber} · check-out-ul actual este ${fmtDate(r.checkout)}. Alege noua dată de check-out, mai târzie — noaptea/nopțile suplimentare vor fi facturate la tariful curent al camerei.`;
 
     const minDate = localISODate(addDays(parseLocalDate(r.checkout), 1));
     const dateInput = document.getElementById('da-date');
@@ -806,8 +800,8 @@
     dateAdjustMode = 'shorten';
     dateAdjustId = id;
 
-    document.getElementById('da-title').textContent = 'Leave early';
-    document.getElementById('da-info').textContent = `Room ${r.roomNumber} · current checkout is ${fmtDate(r.checkout)}. Choose the earlier checkout date — no price reduction will be applied.`;
+    document.getElementById('da-title').textContent = 'Plecare mai devreme';
+    document.getElementById('da-info').textContent = `Camera ${r.roomNumber} · check-out-ul actual este ${fmtDate(r.checkout)}. Alege data de check-out mai devreme — nu se va aplica nicio reducere de preț.`;
 
     const dateInput = document.getElementById('da-date');
     dateInput.min = localISODate(addDays(parseLocalDate(r.checkin), 1));
@@ -828,16 +822,16 @@
   function submitDateAdjust(){
     const r = reservations.find(x => x.id === dateAdjustId);
     const input = document.getElementById('da-date').value;
-    if (!r || !input) { alert('Please choose a date.'); return; }
+    if (!r || !input) { alert('Te rugăm alege o dată.'); return; }
 
     if (dateAdjustMode === 'extend') {
       const newCheckoutDate = parseLocalDate(input);
       const oldCheckoutDate = parseLocalDate(r.checkout);
-      if (newCheckoutDate <= oldCheckoutDate) { alert('The new checkout date must be after the current one.'); return; }
+      if (newCheckoutDate <= oldCheckoutDate) { alert('Noua dată de check-out trebuie să fie după cea actuală.'); return; }
 
       const blocker = roomBlocker(r.roomNumber, r.checkin, input, r.id);
       if (blocker) {
-        alert(`Can't extend — Room ${r.roomNumber} is already booked by ${blocker.guest} starting ${fmtDate(blocker.checkin)}. You could move this guest to a different available room instead, using Edit.`);
+        alert(`Nu se poate prelungi — Camera ${r.roomNumber} este deja rezervată de ${blocker.guest} începând cu ${fmtDate(blocker.checkin)}. Poți muta acest oaspete la o altă cameră disponibilă, folosind Editează.`);
         return;
       }
 
@@ -846,7 +840,7 @@
       const extraCharge = nights * rate;
 
       r.extras = r.extras || [];
-      r.extras.push({ catalogId: null, type: 'extension', name: 'Extra night', price: rate, qty: nights });
+      r.extras.push({ catalogId: null, type: 'extension', name: 'Noapte suplimentară', price: rate, qty: nights });
       r.checkout = input;
       // TODO: PATCH /api/bookings/{id} { checkout, extras } — and ideally re-sync
       // availability to Beds24/Booking.com for the extended date range.
@@ -855,31 +849,31 @@
       renderReservations();
 
       const owesReminder = (r.status === 'paid' || r.status === 'checkedin')
-        ? ` This reservation is already marked "${statusLabel[r.status]}" — the extra ${nights} night(s) aren't automatically marked paid, so make sure to collect ${extraCharge} lei from the guest.`
+        ? ` Această rezervare este deja marcată „${statusLabel[r.status]}" — ${nights} noapte(nopți) suplimentară(e) nu sunt marcate automat ca plătite, așa că asigură-te că încasezi ${extraCharge} lei de la oaspete.`
         : '';
-      alert(`Stay extended to ${fmtDate(input)} for Room ${r.roomNumber}. Extra charge: ${nights} night(s) × ${rate} lei = ${extraCharge} lei.${owesReminder}`);
+      alert(`Sejur prelungit până la ${fmtDate(input)} pentru Camera ${r.roomNumber}. Cost suplimentar: ${nights} noapte(nopți) × ${rate} lei = ${extraCharge} lei.${owesReminder}`);
 
     } else if (dateAdjustMode === 'shorten') {
       const newCheckoutDate = parseLocalDate(input);
       const oldCheckoutDate = parseLocalDate(r.checkout);
       const checkinDate = parseLocalDate(r.checkin);
-      if (newCheckoutDate <= checkinDate) { alert('The new checkout date must be after the check-in date.'); return; }
-      if (newCheckoutDate >= oldCheckoutDate) { alert("That date isn't earlier than the current checkout — use Extend stay instead if they're staying longer."); return; }
+      if (newCheckoutDate <= checkinDate) { alert('Noua dată de check-out trebuie să fie după data de check-in.'); return; }
+      if (newCheckoutDate >= oldCheckoutDate) { alert("Data aleasă nu este mai devreme decât check-out-ul actual — folosește Prelungește sejurul dacă oaspetele stă mai mult."); return; }
 
       const nightsReduced = Math.round((oldCheckoutDate - newCheckoutDate) / 86400000);
       r.extras = r.extras || [];
-      r.extras.push({ catalogId: null, type: 'shortened', name: `Left ${nightsReduced} night(s) early (no refund)`, price: 0, qty: 1 });
+      r.extras.push({ catalogId: null, type: 'shortened', name: `A plecat cu ${nightsReduced} noapte(nopți) mai devreme (fără rambursare)`, price: 0, qty: 1 });
       r.checkout = input;
       // TODO: PATCH /api/bookings/{id} { checkout, extras } — and re-sync
       // availability to Beds24/Booking.com so the room shows free sooner.
 
       closeDateAdjust();
       renderReservations();
-      alert(`Checkout moved to ${fmtDate(input)}. No price reduction was applied — the original stay remains fully charged. Room ${r.roomNumber} is now free again starting ${fmtDate(input)}.`);
+      alert(`Check-out mutat la ${fmtDate(input)}. Nu s-a aplicat nicio reducere de preț — sejurul original rămâne facturat integral. Camera ${r.roomNumber} este acum liberă din nou începând cu ${fmtDate(input)}.`);
     }
   }
 
-  const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in", cancelled: "Cancelled" };
+  const statusLabel = { reserved: "Rezervat", paid: "Plătit", checkedin: "Cazat", cancelled: "Anulat" };
   const sourceLabel = { booking: "Booking.com", direct: "Direct" };
 
   function isClosed(r){
@@ -888,7 +882,7 @@
   }
 
   function fmtDate(iso){
-    return parseLocalDate(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return parseLocalDate(iso).toLocaleDateString('ro-RO', { day:'numeric', month:'short' });
   }
 
   function dayOffset(dateStr, refDate){
@@ -912,7 +906,7 @@
   }
 
   function fmtShort(date){
-    return date.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return date.toLocaleDateString('ro-RO', { day:'numeric', month:'short' });
   }
 
   // ---------------------------------------------------------------
@@ -953,7 +947,7 @@
     for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
 
     // Fixed, non-scrolling label column
-    const labelsHTML = `<div class="glabel head">Room</div>` +
+    const labelsHTML = `<div class="glabel head">Cameră</div>` +
       rooms.map(room => `<div class="glabel">${room.num} · ${room.type}</div>`).join('');
 
     // Scrollable day grid (headers + bars), completely separate from the labels
@@ -961,7 +955,7 @@
       const dt = addDays(first, i);
       const isFirstOfMonth = dt.getDate() === 1;
       const label = isFirstOfMonth
-        ? `${dt.toLocaleDateString('en-GB',{month:'short'})} ${dt.getDate()}`
+        ? `${dt.toLocaleDateString('ro-RO',{month:'short'})} ${dt.getDate()}`
         : dt.getDate();
       return `<div class="gantt-daycell head ${isFirstOfMonth ? 'month-start' : ''}" style="grid-column:${i+1};grid-row:1;">${label}</div>`;
     }).join('');
@@ -979,8 +973,8 @@
         const e = Math.min(days, dayOffset(r.checkout, first));
         if (e <= s) return '';
         const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
-        return `<div class="gantt-bar" title="${escapeHTML(r.guest)} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
-                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${escapeHTML(r.guest.split(' ')[0])}</div>`;
+        return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
+                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
       }).join('');
 
       scrollHTML += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${cells}${bars}</div>`;
@@ -995,29 +989,29 @@
   function cardHTML(r, closed){
     // Once checkout date has passed, a non-cancelled stay displays as "Checked out".
     const statusClass = r.status === 'cancelled' ? 'status-cancelled' : (closed ? 'status-checkedout' : `status-${r.status}`);
-    const statusText = r.status === 'cancelled' ? 'Cancelled' : (closed ? 'Checked out' : statusLabel[r.status]);
+    const statusText = r.status === 'cancelled' ? 'Anulat' : (closed ? 'Plecat' : statusLabel[r.status]);
 
     let actions = '';
     if (!closed) {
       if (r.status === 'reserved') {
         actions = `
-          <button onclick="event.stopPropagation(); markPaid(${r.id})">Mark paid</button>
-          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Check in (pay now)</button>
-          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Cancel</button>`;
+          <button onclick="event.stopPropagation(); markPaid(${r.id})">Marchează plătit</button>
+          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Fă check-in (plătește acum)</button>
+          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Anulează</button>`;
       } else if (r.status === 'paid') {
         actions = `
-          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Check in</button>
-          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Cancel</button>`;
+          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Fă check-in</button>
+          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Anulează</button>`;
       } else if (r.status === 'checkedin') {
         actions = `
-          <button onclick="event.stopPropagation(); openExtendStay(${r.id})">+ Extend stay</button>
-          <button onclick="event.stopPropagation(); openShortenStay(${r.id})">− Leave early</button>`;
+          <button onclick="event.stopPropagation(); openExtendStay(${r.id})">+ Prelungește sejurul</button>
+          <button onclick="event.stopPropagation(); openShortenStay(${r.id})">− Pleacă mai devreme</button>`;
       }
     }
 
     const linked = linkedReservations(r);
     const linkedBadge = linked.length > 1
-      ? `<span class="multi-room-badge" title="Booked together: ${linked.map(x => 'Nr. ' + x.roomNumber).join(', ')}">🔗 ${linked.length} rooms</span>`
+      ? `<span class="multi-room-badge" title="Rezervate împreună: ${linked.map(x => 'Nr. ' + x.roomNumber).join(', ')}">🔗 ${linked.length} camere</span>`
       : '';
 
     const SERVICE_ICONS = { massage: '💆', sauna: '🧖' };
@@ -1027,15 +1021,15 @@
 
     const extrasSum = extrasTotal(r);
     const extrasLine = extrasSum > 0
-      ? `<div class="res-extras-summary">+ ${(r.extras||[]).length} extra${r.extras.length>1?'s':''} (${extrasSum} lei)</div>`
+      ? `<div class="res-extras-summary">+ ${(r.extras||[]).length} extra (${extrasSum} lei)</div>`
       : '';
 
     return `
       <div class="res-card ${statusClass}" onclick="handleCardClick(${r.id})">
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
-        <div class="res-guest">${escapeHTML(r.guest)}${linkedBadge}</div>
-        <span class="res-room">${escapeHTML(r.room)} · Nr. ${r.roomNumber}</span>
-        <div class="res-line">📞 ${escapeHTML(r.phone)}</div>
+        <div class="res-guest">${r.guest}${linkedBadge}</div>
+        <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
+        <div class="res-line">📞 ${r.phone}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
         ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
         ${extrasLine}
@@ -1053,7 +1047,7 @@
   // Calendar, and Reports so they all look at the same period.
   // ---------------------------------------------------------------
   let selPeriod = { month: new Date().getMonth(), year: new Date().getFullYear() };
-  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const MONTH_NAMES = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
 
   function buildPeriodSelectHTML(prefix){
     const years = [selPeriod.year - 1, selPeriod.year, selPeriod.year + 1];
@@ -1117,8 +1111,8 @@
     setStat('stat-paid', paidList.length);
     setStat('stat-notpaid', notPaidList.length);
 
-    const filterMap = { checkedin: [checkedInList,'Checked in'], toarrive: [toArriveList,'Still to arrive'], paid: [paidList,'Paid'], notpaid: [notPaidList,'Not paid'] };
-    const [ovList, ovTitle] = overviewFilter ? filterMap[overviewFilter] : [allActive, 'Active reservations'];
+    const filterMap = { checkedin: [checkedInList,'Cazați'], toarrive: [toArriveList,'Urmează să sosească'], paid: [paidList,'Plătit'], notpaid: [notPaidList,'Neplătit'] };
+    const [ovList, ovTitle] = overviewFilter ? filterMap[overviewFilter] : [allActive, 'Rezervări active'];
 
     document.querySelectorAll('.stat-card.filterable').forEach(c => c.classList.remove('active'));
     if (overviewFilter) { const el = document.getElementById('stat-card-' + overviewFilter); if (el) el.classList.add('active'); }
@@ -1126,7 +1120,7 @@
     const titleEl = document.getElementById('overview-list-title');
     if (titleEl) titleEl.textContent = ovTitle;
     const ovGrid = document.getElementById('overview-res-grid');
-    if (ovGrid) ovGrid.innerHTML = ovList.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">No reservations in this view.</p>';
+    if (ovGrid) ovGrid.innerHTML = ovList.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">Nicio rezervare în această vizualizare.</p>';
 
     renderReports();
     renderGantt();
@@ -1150,7 +1144,7 @@
 
   function markCancelled(id){
     const r = reservations.find(x => x.id === id);
-    if (r && confirm(`Cancel the reservation for ${r.guest}?`)) r.status = 'cancelled';
+    if (r && confirm(`Anulezi rezervarea pentru ${r.guest}?`)) r.status = 'cancelled';
     renderReservations();
     // TODO: PATCH /api/bookings/{id} { status: 'cancelled' }
   }
@@ -1168,7 +1162,7 @@
         <option value="Standard">Standard</option>
         <option value="Apartament">Apartament</option>
       </select>
-      <button type="button" onclick="removeRoomLine(this)" title="Remove this room">✕</button>
+      <button type="button" onclick="removeRoomLine(this)" title="Elimină această cameră">✕</button>
     </div>`;
   }
 
@@ -1197,9 +1191,7 @@
     const checkin = document.getElementById('f-checkin').value;
     const checkout = document.getElementById('f-checkout').value;
     const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
-    if (!guest || !checkin || !checkout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
-    if (parseLocalDate(checkout) <= parseLocalDate(checkin)) { alert('Check-out must be after check-in.'); return; }
-    const nights = Math.round((parseLocalDate(checkout) - parseLocalDate(checkin)) / 86400000);
+    if (!guest || !checkin || !checkout) { alert('Te rugăm completează numele oaspetelui, data de check-in și data de check-out.'); return; }
 
     // Assign a room for each line one at a time, so the 2nd/3rd room
     // never gets offered the same number as the one just taken.
@@ -1210,14 +1202,14 @@
       if (!roomNumber) {
         // Roll back any rooms already created for this booking — never leave orphans.
         reservations = reservations.filter(r => !createdIds.includes(r.id));
-        alert(`No ${room} rooms are free for those dates, so this booking wasn't created. Adjust the dates or room mix and try again.`);
+        alert(`Nu mai sunt camere ${room === 'Apartament' ? 'de tip Apartament' : 'de tip Standard'} libere pentru acele date, așa că rezervarea nu a fost creată. Ajustează datele sau combinația de camere și încearcă din nou.`);
         return;
       }
       const newId = Date.now() + assigned.length;
       assigned.push({ room, roomNumber });
       createdIds.push(newId);
       // Reserve it immediately so the next loop iteration sees it as taken.
-      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: nights * roomRate(room), groupId: null, extras: [] });
+      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
     }
 
     // Link all the just-created rows together if more than one room was booked.
@@ -1271,7 +1263,7 @@
       <tr>
         <td>${m.name}</td>
         <td>${m.price} lei</td>
-        <td class="${m.stock <= 5 ? 'stock-low' : ''}">${m.stock}${m.stock <= 5 ? ' — low!' : ''}</td>
+        <td class="${m.stock <= 5 ? 'stock-low' : ''}">${m.stock}${m.stock <= 5 ? ' — stoc redus!' : ''}</td>
         <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px;" onclick="restockItem('${m.id}')">+ Restock</button></td>
       </tr>
     `).join('');
@@ -1280,7 +1272,7 @@
   function restockItem(id){
     const item = findCatalogItem('minibar', id);
     if (!item) return;
-    const qty = parseInt(prompt(`Add how many ${item.name} to stock?`, '10'), 10);
+    const qty = parseInt(prompt(`Câte bucăți de ${item.name} adaugi în stoc?`, '10'), 10);
     if (qty > 0) {
       item.stock += qty;
       // TODO: PATCH /api/catalog/minibar/{id} { stock }
@@ -1294,17 +1286,6 @@
   // etc.) stop the click from bubbling up, so they still work on their own.
   // ---------------------------------------------------------------
   let editingId = null;
-  let editingExtras = [];
-  let editingOriginalExtras = [];
-
-  function cloneExtras(extras){
-    return (extras || []).map(extra => ({ ...extra }));
-  }
-
-  function minibarQuantity(extras, catalogId){
-    return (extras || []).filter(extra => extra.type === 'minibar' && extra.catalogId === catalogId)
-      .reduce((sum, extra) => sum + extra.qty, 0);
-  }
 
   function populateRoomNumberOptions(type, current){
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
@@ -1326,8 +1307,6 @@
     document.getElementById('e2-source').value = r.source;
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
-    editingOriginalExtras = cloneExtras(r.extras);
-    editingExtras = cloneExtras(r.extras);
 
     document.getElementById('e2-service-select').innerHTML = catalog.services.map(s => `<option value="${s.id}">${s.name} — ${s.price} lei</option>`).join('');
     document.getElementById('e2-minibar-select').innerHTML = catalog.minibar.map(m => `<option value="${m.id}" ${m.stock<=0?'disabled':''}>${m.name} — ${m.price} lei (${m.stock} in stock)</option>`).join('');
@@ -1338,22 +1317,23 @@
   }
 
   function renderEditExtras(){
+    const r = reservations.find(x => x.id === editingId);
     const el = document.getElementById('e2-extras-list');
-    if (!el) return;
-    if (editingExtras.length === 0) {
-      el.innerHTML = `<p style="font-size:12px;color:var(--ink-soft);">No extras added yet.</p>`;
+    if (!r || !el) return;
+    if (!r.extras || r.extras.length === 0) {
+      el.innerHTML = `<p style="font-size:12px;color:var(--ink-soft);">Niciun extra adăugat încă.</p>`;
       return;
     }
-    const editingTotal = editingExtras.reduce((sum, e) => sum + e.price * e.qty, 0);
-    el.innerHTML = editingExtras.map((e, i) => `
+    el.innerHTML = r.extras.map((e, i) => `
       <div class="extra-row">
-        <span>${escapeHTML(e.name)} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
-        <button type="button" onclick="removeExtraFromEditing(${i})">Remove</button>
-      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Extras total</span><span>${editingTotal} lei</span></div>`;
+        <span>${e.name} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
+        <button type="button" onclick="removeExtraFromEditing(${i})">Elimină</button>
+      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Total extra</span><span>${extrasTotal(r)} lei</span></div>`;
   }
 
   function addExtraToEditing(type){
-    if (!reservations.some(x => x.id === editingId)) return;
+    const r = reservations.find(x => x.id === editingId);
+    if (!r) return;
     const selectId = type === 'service' ? 'e2-service-select' : 'e2-minibar-select';
     const qtyId = type === 'service' ? 'e2-service-qty' : 'e2-minibar-qty';
     const catalogId = document.getElementById(selectId).value;
@@ -1362,28 +1342,38 @@
     if (!item) return;
 
     if (type === 'minibar') {
-      const available = item.stock - Math.max(0, minibarQuantity(editingExtras, catalogId) - minibarQuantity(editingOriginalExtras, catalogId));
-      if (qty > available) { alert(`Only ${available} ${item.name} left in stock.`); return; }
+      if (qty > item.stock) { alert(`Mai sunt doar ${item.stock} bucăți de ${item.name} în stoc.`); return; }
+      item.stock -= qty; // decrement shared inventory immediately
     }
 
-    editingExtras.push({ catalogId, type, name: item.name, price: item.price, qty });
+    r.extras = r.extras || [];
+    r.extras.push({ catalogId, type, name: item.name, price: item.price, qty });
+    // TODO: POST /api/bookings/{id}/extras { catalogId, type, qty }
 
     renderEditExtras();
+    renderInventoryTable();
   }
 
   function removeExtraFromEditing(index){
-    if (!editingExtras[index]) return;
-    editingExtras.splice(index, 1);
+    const r = reservations.find(x => x.id === editingId);
+    if (!r || !r.extras[index]) return;
+    const removed = r.extras[index];
+    if (removed.type === 'minibar') {
+      const item = findCatalogItem('minibar', removed.catalogId);
+      if (item) item.stock += removed.qty; // restock on removal
+    }
+    r.extras.splice(index, 1);
+    // TODO: DELETE /api/bookings/{id}/extras/{index}
 
     renderEditExtras();
+    renderInventoryTable();
   }
 
   function closeEditReservation(){
     document.getElementById('edit-reservation-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
     editingId = null;
-    editingExtras = [];
-    editingOriginalExtras = [];
+    renderReservations(); // in case extras changed stock/prices while editing
   }
 
   function submitEditReservation(){
@@ -1394,27 +1384,14 @@
     const newCheckin = document.getElementById('e2-checkin').value;
     const newCheckout = document.getElementById('e2-checkout').value;
     const newStatus = document.getElementById('e2-status').value;
-    const newGuest = document.getElementById('e2-guest').value.trim();
-    const newPhone = document.getElementById('e2-phone').value.trim();
-
-    if (!newGuest || !newCheckin || !newCheckout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
-    if (parseLocalDate(newCheckout) <= parseLocalDate(newCheckin)) { alert('Check-out must be after check-in.'); return; }
 
     if (newStatus !== 'cancelled' && roomHasConflict(newRoomNumber, newCheckin, newCheckout, r.id)) {
-      alert(`Room ${newRoomNumber} is already booked for an overlapping date range. Pick a different room or dates.`);
+      alert(`Camera ${newRoomNumber} este deja rezervată pentru un interval de date care se suprapune. Alege altă cameră sau alte date.`);
       return;
     }
 
-    for (const item of catalog.minibar) {
-      const stockDelta = minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
-      if (stockDelta > item.stock) { alert(`Only ${item.stock} ${item.name} left in stock.`); return; }
-    }
-    for (const item of catalog.minibar) {
-      item.stock -= minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
-    }
-
-    r.guest = newGuest;
-    r.phone = newPhone;
+    r.guest = document.getElementById('e2-guest').value.trim();
+    r.phone = document.getElementById('e2-phone').value.trim();
     r.room = document.getElementById('e2-roomtype').value;
     r.roomNumber = newRoomNumber;
     r.checkin = newCheckin;
@@ -1422,7 +1399,6 @@
     r.source = document.getElementById('e2-source').value;
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
-    r.extras = cloneExtras(editingExtras);
     // TODO: PATCH /api/bookings/{id} with the full updated object
 
     closeEditReservation();
@@ -1432,7 +1408,7 @@
   function deleteReservationConfirm(){
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
-    if (confirm(`Delete the reservation for ${r.guest}? This cannot be undone.`)) {
+    if (confirm(`Ștergi rezervarea pentru ${r.guest}? Această acțiune nu poate fi anulată.`)) {
       (r.extras || []).forEach(e => {
         if (e.type === 'minibar') {
           const item = findCatalogItem('minibar', e.catalogId);
@@ -1451,9 +1427,9 @@
   // TODO: replace with fetch('/api/expenses') once a backend exists.
   // ---------------------------------------------------------------
   let expenses = [
-    { id: 1, date: d(-12), category: "Groceries", note: "Breakfast supplies", amount: 420 },
-    { id: 2, date: d(-8),  category: "Repairs",   note: "Room 3 sink",        amount: 610 },
-    { id: 3, date: d(-3),  category: "Utilities", note: "Electricity",        amount: 980 }
+    { id: 1, date: d(-12), category: "Alimente",  note: "Provizii mic dejun",   amount: 420 },
+    { id: 2, date: d(-8),  category: "Reparații", note: "Chiuvetă camera 3",    amount: 610 },
+    { id: 3, date: d(-3),  category: "Utilități", note: "Curent electric",      amount: 980 }
   ];
 
   function openAddExpense(){
@@ -1469,7 +1445,7 @@
     const note = document.getElementById('e-note').value.trim();
     const amount = parseFloat(document.getElementById('e-amount').value);
     const date = document.getElementById('e-date').value || d(0);
-    if (!amount || amount <= 0) { alert('Please enter a valid amount.'); return; }
+    if (!amount || amount <= 0) { alert('Te rugăm introdu o sumă validă.'); return; }
 
     expenses.push({ id: Date.now(), date, category, note, amount });
     // TODO: POST /api/expenses { category, note, amount, date }
@@ -1565,15 +1541,15 @@
     const checkedInCount = reservations.filter(r => r.status === 'checkedin').length;
     const cancelledCount = reservations.filter(r => r.status === 'cancelled').length;
     donutChart(document.getElementById('chart-outcome'), [
-      { label: 'Checked in', value: checkedInCount, color: '#26503C' },
-      { label: 'Cancelled',  value: cancelledCount, color: '#B4453A' }
+      { label: 'Cazați',  value: checkedInCount, color: '#26503C' },
+      { label: 'Anulate', value: cancelledCount, color: '#B4453A' }
     ]);
 
     // Expenses table
     const tbody = document.getElementById('expenses-table');
     const sorted = [...expenses].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
     tbody.innerHTML = sorted.map(e => `
-      <tr><td>${fmtDate(e.date)}</td><td>${escapeHTML(e.category)}</td><td>${escapeHTML(e.note || '—')}</td><td>${money(e.amount)}</td></tr>
+      <tr><td>${fmtDate(e.date)}</td><td>${e.category}</td><td>${e.note || '—'}</td><td>${money(e.amount)}</td></tr>
     `).join('');
     document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
   }
