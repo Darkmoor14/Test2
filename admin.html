@@ -714,6 +714,12 @@
     return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
   }
 
+  function escapeHTML(value){
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    })[char]);
+  }
+
   function roomRate(roomType){
     return (catalog.rooms[roomType] && catalog.rooms[roomType].price) || 0;
   }
@@ -973,8 +979,8 @@
         const e = Math.min(days, dayOffset(r.checkout, first));
         if (e <= s) return '';
         const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
-        return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
-                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
+        return `<div class="gantt-bar" title="${escapeHTML(r.guest)} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
+                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${escapeHTML(r.guest.split(' ')[0])}</div>`;
       }).join('');
 
       scrollHTML += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${cells}${bars}</div>`;
@@ -1027,9 +1033,9 @@
     return `
       <div class="res-card ${statusClass}" onclick="handleCardClick(${r.id})">
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
-        <div class="res-guest">${r.guest}${linkedBadge}</div>
-        <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
-        <div class="res-line">📞 ${r.phone}</div>
+        <div class="res-guest">${escapeHTML(r.guest)}${linkedBadge}</div>
+        <span class="res-room">${escapeHTML(r.room)} · Nr. ${r.roomNumber}</span>
+        <div class="res-line">📞 ${escapeHTML(r.phone)}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
         ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
         ${extrasLine}
@@ -1192,6 +1198,8 @@
     const checkout = document.getElementById('f-checkout').value;
     const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
     if (!guest || !checkin || !checkout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
+    if (parseLocalDate(checkout) <= parseLocalDate(checkin)) { alert('Check-out must be after check-in.'); return; }
+    const nights = Math.round((parseLocalDate(checkout) - parseLocalDate(checkin)) / 86400000);
 
     // Assign a room for each line one at a time, so the 2nd/3rd room
     // never gets offered the same number as the one just taken.
@@ -1209,7 +1217,7 @@
       assigned.push({ room, roomNumber });
       createdIds.push(newId);
       // Reserve it immediately so the next loop iteration sees it as taken.
-      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
+      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: nights * roomRate(room), groupId: null, extras: [] });
     }
 
     // Link all the just-created rows together if more than one room was booked.
@@ -1286,6 +1294,17 @@
   // etc.) stop the click from bubbling up, so they still work on their own.
   // ---------------------------------------------------------------
   let editingId = null;
+  let editingExtras = [];
+  let editingOriginalExtras = [];
+
+  function cloneExtras(extras){
+    return (extras || []).map(extra => ({ ...extra }));
+  }
+
+  function minibarQuantity(extras, catalogId){
+    return (extras || []).filter(extra => extra.type === 'minibar' && extra.catalogId === catalogId)
+      .reduce((sum, extra) => sum + extra.qty, 0);
+  }
 
   function populateRoomNumberOptions(type, current){
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
@@ -1307,6 +1326,8 @@
     document.getElementById('e2-source').value = r.source;
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
+    editingOriginalExtras = cloneExtras(r.extras);
+    editingExtras = cloneExtras(r.extras);
 
     document.getElementById('e2-service-select').innerHTML = catalog.services.map(s => `<option value="${s.id}">${s.name} — ${s.price} lei</option>`).join('');
     document.getElementById('e2-minibar-select').innerHTML = catalog.minibar.map(m => `<option value="${m.id}" ${m.stock<=0?'disabled':''}>${m.name} — ${m.price} lei (${m.stock} in stock)</option>`).join('');
@@ -1317,23 +1338,22 @@
   }
 
   function renderEditExtras(){
-    const r = reservations.find(x => x.id === editingId);
     const el = document.getElementById('e2-extras-list');
-    if (!r || !el) return;
-    if (!r.extras || r.extras.length === 0) {
+    if (!el) return;
+    if (editingExtras.length === 0) {
       el.innerHTML = `<p style="font-size:12px;color:var(--ink-soft);">No extras added yet.</p>`;
       return;
     }
-    el.innerHTML = r.extras.map((e, i) => `
+    const editingTotal = editingExtras.reduce((sum, e) => sum + e.price * e.qty, 0);
+    el.innerHTML = editingExtras.map((e, i) => `
       <div class="extra-row">
-        <span>${e.name} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
+        <span>${escapeHTML(e.name)} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
         <button type="button" onclick="removeExtraFromEditing(${i})">Remove</button>
-      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Extras total</span><span>${extrasTotal(r)} lei</span></div>`;
+      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Extras total</span><span>${editingTotal} lei</span></div>`;
   }
 
   function addExtraToEditing(type){
-    const r = reservations.find(x => x.id === editingId);
-    if (!r) return;
+    if (!reservations.some(x => x.id === editingId)) return;
     const selectId = type === 'service' ? 'e2-service-select' : 'e2-minibar-select';
     const qtyId = type === 'service' ? 'e2-service-qty' : 'e2-minibar-qty';
     const catalogId = document.getElementById(selectId).value;
@@ -1342,38 +1362,28 @@
     if (!item) return;
 
     if (type === 'minibar') {
-      if (qty > item.stock) { alert(`Only ${item.stock} ${item.name} left in stock.`); return; }
-      item.stock -= qty; // decrement shared inventory immediately
+      const available = item.stock - Math.max(0, minibarQuantity(editingExtras, catalogId) - minibarQuantity(editingOriginalExtras, catalogId));
+      if (qty > available) { alert(`Only ${available} ${item.name} left in stock.`); return; }
     }
 
-    r.extras = r.extras || [];
-    r.extras.push({ catalogId, type, name: item.name, price: item.price, qty });
-    // TODO: POST /api/bookings/{id}/extras { catalogId, type, qty }
+    editingExtras.push({ catalogId, type, name: item.name, price: item.price, qty });
 
     renderEditExtras();
-    renderInventoryTable();
   }
 
   function removeExtraFromEditing(index){
-    const r = reservations.find(x => x.id === editingId);
-    if (!r || !r.extras[index]) return;
-    const removed = r.extras[index];
-    if (removed.type === 'minibar') {
-      const item = findCatalogItem('minibar', removed.catalogId);
-      if (item) item.stock += removed.qty; // restock on removal
-    }
-    r.extras.splice(index, 1);
-    // TODO: DELETE /api/bookings/{id}/extras/{index}
+    if (!editingExtras[index]) return;
+    editingExtras.splice(index, 1);
 
     renderEditExtras();
-    renderInventoryTable();
   }
 
   function closeEditReservation(){
     document.getElementById('edit-reservation-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
     editingId = null;
-    renderReservations(); // in case extras changed stock/prices while editing
+    editingExtras = [];
+    editingOriginalExtras = [];
   }
 
   function submitEditReservation(){
@@ -1384,14 +1394,27 @@
     const newCheckin = document.getElementById('e2-checkin').value;
     const newCheckout = document.getElementById('e2-checkout').value;
     const newStatus = document.getElementById('e2-status').value;
+    const newGuest = document.getElementById('e2-guest').value.trim();
+    const newPhone = document.getElementById('e2-phone').value.trim();
+
+    if (!newGuest || !newCheckin || !newCheckout) { alert('Please fill in guest name, check-in and check-out dates.'); return; }
+    if (parseLocalDate(newCheckout) <= parseLocalDate(newCheckin)) { alert('Check-out must be after check-in.'); return; }
 
     if (newStatus !== 'cancelled' && roomHasConflict(newRoomNumber, newCheckin, newCheckout, r.id)) {
       alert(`Room ${newRoomNumber} is already booked for an overlapping date range. Pick a different room or dates.`);
       return;
     }
 
-    r.guest = document.getElementById('e2-guest').value.trim();
-    r.phone = document.getElementById('e2-phone').value.trim();
+    for (const item of catalog.minibar) {
+      const stockDelta = minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
+      if (stockDelta > item.stock) { alert(`Only ${item.stock} ${item.name} left in stock.`); return; }
+    }
+    for (const item of catalog.minibar) {
+      item.stock -= minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
+    }
+
+    r.guest = newGuest;
+    r.phone = newPhone;
     r.room = document.getElementById('e2-roomtype').value;
     r.roomNumber = newRoomNumber;
     r.checkin = newCheckin;
@@ -1399,6 +1422,7 @@
     r.source = document.getElementById('e2-source').value;
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
+    r.extras = cloneExtras(editingExtras);
     // TODO: PATCH /api/bookings/{id} with the full updated object
 
     closeEditReservation();
@@ -1549,7 +1573,7 @@
     const tbody = document.getElementById('expenses-table');
     const sorted = [...expenses].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
     tbody.innerHTML = sorted.map(e => `
-      <tr><td>${fmtDate(e.date)}</td><td>${e.category}</td><td>${e.note || '—'}</td><td>${money(e.amount)}</td></tr>
+      <tr><td>${fmtDate(e.date)}</td><td>${escapeHTML(e.category)}</td><td>${escapeHTML(e.note || '—')}</td><td>${money(e.amount)}</td></tr>
     `).join('');
     document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
   }
