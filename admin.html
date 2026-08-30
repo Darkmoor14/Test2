@@ -192,7 +192,7 @@
       </div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-outline">Force sync</button>
-        <button class="btn btn-primary" onclick="showSection('reservations')">+ Add booking</button>
+        <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Add booking</button>
       </div>
     </div>
 
@@ -289,27 +289,17 @@
 
       <!-- ROOMS & PRICING -->
       <section class="section" id="rooms">
-        <div class="room-grid">
+        <div class="room-grid" style="grid-template-columns:repeat(2,1fr);max-width:700px;">
           <div class="room-card">
-            <h3>Room 1 — Standard dublă</h3>
+            <h3>Standard</h3>
+            <div class="stat-note" style="margin-bottom:4px;">9 rooms of this type</div>
             <div class="price">340 lei <span>/ night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="390"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
-          </div>
-          <div class="room-card">
-            <h3>Room 2 — Standard dublă</h3>
-            <div class="price">340 lei <span>/ night base</span></div>
-            <div class="field-row">Weekend rate <input type="number" value="390"></div>
-            <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
-          </div>
-          <div class="room-card">
-            <h3>Room 3 — Twin</h3>
-            <div class="price">310 lei <span>/ night base</span></div>
-            <div class="field-row">Weekend rate <input type="number" value="350"></div>
-            <div class="field-row">Min. stay (nights) <input type="number" value="1"></div>
           </div>
           <div class="room-card">
             <h3>Apartament</h3>
+            <div class="stat-note" style="margin-bottom:4px;">2 apartments of this type</div>
             <div class="price">620 lei <span>/ night base</span></div>
             <div class="field-row">Weekend rate <input type="number" value="700"></div>
             <div class="field-row">Min. stay (nights) <input type="number" value="2"></div>
@@ -468,6 +458,9 @@
     document.querySelector(`.nav-btn[data-section="${id}"]`).classList.add('active');
     document.getElementById('page-title').textContent = meta[id][0];
     document.getElementById('page-sub').textContent = meta[id][1];
+
+    const hideAddBooking = (id === 'reports' || id === 'sync');
+    document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
   }
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
