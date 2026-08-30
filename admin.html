@@ -158,8 +158,12 @@
 
   /* Gantt calendar */
   .period-select select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
+  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);}
+  .glabel{height:32px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;}
+  .gantt-scroll{overflow-x:auto;flex:1;min-width:0;}
   .gantt-row{display:grid;position:relative;}
-  .gantt-label{padding:6px 10px;font-size:12px;font-weight:600;background:#FAF8F2;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;position:sticky;left:0;z-index:2;white-space:nowrap;}
   .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
   .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
   .gantt-daycell.month-start{border-left:2px solid var(--amber);}
@@ -299,7 +303,7 @@
           </div>
         </div>
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;" id="gantt-range-label"></div>
-        <div class="panel" style="overflow-x:auto;padding:0;">
+        <div class="panel" style="padding:0;">
           <div id="gantt"></div>
         </div>
         <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Scrolls continuously — a stay is never cut off at a month boundary. Bars are colored by source and labeled with the guest's first name.</p>
@@ -532,7 +536,7 @@
     reports:      ["Reports", "This month"]
   };
 
-  function showSection(id){
+  function showSection(id, fromHistory){
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -548,7 +552,18 @@
     if (backBtn) backBtn.classList.remove('show');
 
     toggleSidebar(false); // close the mobile sidebar after navigating
+
+    // Only push a new history entry when navigating forward (not when
+    // responding to the browser's own Back/Forward buttons).
+    if (!fromHistory) {
+      history.pushState({ section: id }, '', '#' + id);
+    }
   }
+
+  window.addEventListener('popstate', (e) => {
+    const id = (e.state && e.state.section) || 'overview';
+    showSection(id, true);
+  });
 
   function toggleSidebar(open){
     document.querySelector('.sidebar').classList.toggle('open', open);
@@ -687,7 +702,7 @@
     const days = ganttWindowDays();
     const first = ganttStart;
     const colWidth = ganttViewMode === 'week' ? 64 : 26;
-    const colTemplate = `140px repeat(${days}, minmax(${colWidth}px,1fr))`;
+    const colTemplate = `repeat(${days}, minmax(${colWidth}px,1fr))`;
 
     const rangeLabel = document.getElementById('gantt-range-label');
     if (rangeLabel) rangeLabel.textContent = `${fmtShort(first)} – ${fmtShort(addDays(first, days - 1))}`;
@@ -695,24 +710,26 @@
     const rooms = [];
     for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
 
+    // Fixed, non-scrolling label column
+    const labelsHTML = `<div class="glabel head">Room</div>` +
+      rooms.map(room => `<div class="glabel">${room.num} · ${room.type}</div>`).join('');
+
+    // Scrollable day grid (headers + bars), completely separate from the labels
     const dayHeaderHTML = Array.from({length:days}, (_,i) => {
       const dt = addDays(first, i);
       const isFirstOfMonth = dt.getDate() === 1;
       const label = isFirstOfMonth
         ? `${dt.toLocaleDateString('en-GB',{month:'short'})} ${dt.getDate()}`
         : dt.getDate();
-      return `<div class="gantt-daycell head ${isFirstOfMonth ? 'month-start' : ''}" style="grid-column:${i+2};grid-row:1;">${label}</div>`;
+      return `<div class="gantt-daycell head ${isFirstOfMonth ? 'month-start' : ''}" style="grid-column:${i+1};grid-row:1;">${label}</div>`;
     }).join('');
 
-    let html = `<div class="gantt-row" style="grid-template-columns:${colTemplate};">
-      <div class="gantt-label" style="grid-column:1;grid-row:1;">Room</div>
-      ${dayHeaderHTML}
-    </div>`;
+    let scrollHTML = `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${dayHeaderHTML}</div>`;
 
     rooms.forEach(room => {
       const cells = Array.from({length:days}, (_,i) => {
         const dt = addDays(first, i);
-        return `<div class="gantt-daycell ${dt.getDate()===1?'month-start':''}" style="grid-column:${i+2};grid-row:1;"></div>`;
+        return `<div class="gantt-daycell ${dt.getDate()===1?'month-start':''}" style="grid-column:${i+1};grid-row:1;"></div>`;
       }).join('');
       const roomReservations = reservations.filter(r => r.roomNumber === room.num && r.status !== 'cancelled');
       const bars = roomReservations.map(r => {
@@ -721,17 +738,16 @@
         if (e <= s) return '';
         const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
         return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
-                  style="grid-column:${s+2} / ${e+2};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
+                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
       }).join('');
 
-      html += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">
-        <div class="gantt-label" style="grid-column:1;grid-row:1;">${room.num} · ${room.type}</div>
-        ${cells}
-        ${bars}
-      </div>`;
+      scrollHTML += `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${cells}${bars}</div>`;
     });
 
-    el.innerHTML = html;
+    el.innerHTML = `<div class="gantt-wrap">
+      <div class="gantt-labels">${labelsHTML}</div>
+      <div class="gantt-scroll">${scrollHTML}</div>
+    </div>`;
   }
 
   function cardHTML(r, closed){
@@ -1129,6 +1145,13 @@
 
   renderPeriodSelectors();
   renderReservations();
+
+  // Set up the initial history entry, and honor a section in the URL hash
+  // (e.g. reloading on #reports keeps you on Reports).
+  const startSection = (location.hash || '#overview').slice(1);
+  const validStart = document.getElementById(startSection) ? startSection : 'overview';
+  history.replaceState({ section: validStart }, '', '#' + validStart);
+  if (validStart !== 'overview') showSection(validStart, true);
 
   // TODO: replace remaining mock table/card data (rooms, sync log)
   // with fetch() calls to your backend once connected, e.g.:
