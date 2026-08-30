@@ -495,6 +495,19 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="date-adjust-modal">
+  <div class="modal">
+    <h2 id="da-title">Extend stay</h2>
+    <p id="da-info" style="font-size:13px;color:var(--ink-soft);margin:0 0 4px;"></p>
+    <label>New checkout date</label>
+    <input type="date" id="da-date">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeDateAdjust()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitDateAdjust()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="add-booking-modal">
   <div class="modal">
     <h2>Add booking</h2>
@@ -759,78 +772,110 @@
   }
 
   // ---------------------------------------------------------------
-  // EXTEND STAY — a guest already at the property decides to stay
-  // longer. Checks the room is actually free for the extra night(s),
-  // then bills the extension at the room's current nightly rate and
-  // flags that payment may still be owed for it.
+  // EXTEND STAY / LEAVE EARLY — both use one small modal with a real
+  // <input type="date"> (native calendar picker) instead of typing a
+  // date into a prompt(). dateAdjustMode/'Id' track which reservation
+  // and which direction (extend vs shorten) the open modal applies to.
   // ---------------------------------------------------------------
-  function extendStay(id){
+  let dateAdjustMode = null; // 'extend' | 'shorten'
+  let dateAdjustId = null;
+
+  function openExtendStay(id){
     const r = reservations.find(x => x.id === id);
     if (!r) return;
+    dateAdjustMode = 'extend';
+    dateAdjustId = id;
 
-    const suggested = localISODate(addDays(parseLocalDate(r.checkout), 1));
-    const input = prompt(`Current checkout is ${fmtDate(r.checkout)}. Enter the new checkout date (YYYY-MM-DD):`, suggested);
-    if (!input) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Please enter a valid date in YYYY-MM-DD format.'); return; }
+    document.getElementById('da-title').textContent = 'Extend stay';
+    document.getElementById('da-info').textContent = `Room ${r.roomNumber} · current checkout is ${fmtDate(r.checkout)}. Choose the new, later checkout date — the extra night(s) will be billed at the room's current rate.`;
 
-    const newCheckoutDate = parseLocalDate(input);
-    const oldCheckoutDate = parseLocalDate(r.checkout);
-    if (newCheckoutDate <= oldCheckoutDate) { alert('The new checkout date must be after the current one.'); return; }
+    const minDate = localISODate(addDays(parseLocalDate(r.checkout), 1));
+    const dateInput = document.getElementById('da-date');
+    dateInput.min = minDate;
+    dateInput.removeAttribute('max');
+    dateInput.value = minDate;
 
-    const blocker = roomBlocker(r.roomNumber, r.checkin, input, r.id);
-    if (blocker) {
-      alert(`Can't extend — Room ${r.roomNumber} is already booked by ${blocker.guest} starting ${fmtDate(blocker.checkin)}. You could move this guest to a different available room instead, using Edit.`);
-      return;
-    }
-
-    const nights = Math.round((newCheckoutDate - oldCheckoutDate) / 86400000);
-    const rate = roomRate(r.room);
-    const extraCharge = nights * rate;
-
-    r.extras = r.extras || [];
-    r.extras.push({ catalogId: null, type: 'extension', name: 'Extra night', price: rate, qty: nights });
-    r.checkout = input;
-    // TODO: PATCH /api/bookings/{id} { checkout, extras } — and ideally re-sync
-    // availability to Beds24/Booking.com for the extended date range.
-
-    renderReservations();
-
-    const owesReminder = (r.status === 'paid' || r.status === 'checkedin')
-      ? ` This reservation is already marked "${statusLabel[r.status]}" — the extra ${nights} night(s) aren't automatically marked paid, so make sure to collect ${extraCharge} lei from the guest.`
-      : '';
-    alert(`Stay extended to ${fmtDate(input)} for Room ${r.roomNumber}. Extra charge: ${nights} night(s) × ${rate} lei = ${extraCharge} lei.${owesReminder}`);
+    document.getElementById('date-adjust-modal').classList.add('open');
+    document.body.classList.add('modal-open');
   }
 
-  // ---------------------------------------------------------------
-  // LEAVE EARLY — the opposite case: a checked-in guest departs before
-  // their booked checkout date. No price reduction (per policy) — this
-  // just corrects the checkout date so the room frees up correctly for
-  // new bookings, and leaves a note on the reservation for the record.
-  // ---------------------------------------------------------------
-  function shortenStay(id){
+  function openShortenStay(id){
     const r = reservations.find(x => x.id === id);
     if (!r) return;
+    dateAdjustMode = 'shorten';
+    dateAdjustId = id;
 
-    const suggested = localISODate(addDays(parseLocalDate(r.checkout), -1));
-    const input = prompt(`Current checkout is ${fmtDate(r.checkout)}. Enter the earlier checkout date (YYYY-MM-DD):`, suggested);
-    if (!input) return;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Please enter a valid date in YYYY-MM-DD format.'); return; }
+    document.getElementById('da-title').textContent = 'Leave early';
+    document.getElementById('da-info').textContent = `Room ${r.roomNumber} · current checkout is ${fmtDate(r.checkout)}. Choose the earlier checkout date — no price reduction will be applied.`;
 
-    const newCheckoutDate = parseLocalDate(input);
-    const oldCheckoutDate = parseLocalDate(r.checkout);
-    const checkinDate = parseLocalDate(r.checkin);
-    if (newCheckoutDate <= checkinDate) { alert('The new checkout date must be after the check-in date.'); return; }
-    if (newCheckoutDate >= oldCheckoutDate) { alert("That date isn't earlier than the current checkout — use Extend stay instead if they're staying longer."); return; }
+    const dateInput = document.getElementById('da-date');
+    dateInput.min = localISODate(addDays(parseLocalDate(r.checkin), 1));
+    dateInput.max = localISODate(addDays(parseLocalDate(r.checkout), -1));
+    dateInput.value = dateInput.max;
 
-    const nightsReduced = Math.round((oldCheckoutDate - newCheckoutDate) / 86400000);
-    r.extras = r.extras || [];
-    r.extras.push({ catalogId: null, type: 'shortened', name: `Left ${nightsReduced} night(s) early (no refund)`, price: 0, qty: 1 });
-    r.checkout = input;
-    // TODO: PATCH /api/bookings/{id} { checkout, extras } — and re-sync
-    // availability to Beds24/Booking.com so the room shows free sooner.
+    document.getElementById('date-adjust-modal').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
 
-    renderReservations();
-    alert(`Checkout moved to ${fmtDate(input)}. No price reduction was applied — the original stay remains fully charged. Room ${r.roomNumber} is now free again starting ${fmtDate(input)}.`);
+  function closeDateAdjust(){
+    document.getElementById('date-adjust-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+    dateAdjustMode = null;
+    dateAdjustId = null;
+  }
+
+  function submitDateAdjust(){
+    const r = reservations.find(x => x.id === dateAdjustId);
+    const input = document.getElementById('da-date').value;
+    if (!r || !input) { alert('Please choose a date.'); return; }
+
+    if (dateAdjustMode === 'extend') {
+      const newCheckoutDate = parseLocalDate(input);
+      const oldCheckoutDate = parseLocalDate(r.checkout);
+      if (newCheckoutDate <= oldCheckoutDate) { alert('The new checkout date must be after the current one.'); return; }
+
+      const blocker = roomBlocker(r.roomNumber, r.checkin, input, r.id);
+      if (blocker) {
+        alert(`Can't extend — Room ${r.roomNumber} is already booked by ${blocker.guest} starting ${fmtDate(blocker.checkin)}. You could move this guest to a different available room instead, using Edit.`);
+        return;
+      }
+
+      const nights = Math.round((newCheckoutDate - oldCheckoutDate) / 86400000);
+      const rate = roomRate(r.room);
+      const extraCharge = nights * rate;
+
+      r.extras = r.extras || [];
+      r.extras.push({ catalogId: null, type: 'extension', name: 'Extra night', price: rate, qty: nights });
+      r.checkout = input;
+      // TODO: PATCH /api/bookings/{id} { checkout, extras } — and ideally re-sync
+      // availability to Beds24/Booking.com for the extended date range.
+
+      closeDateAdjust();
+      renderReservations();
+
+      const owesReminder = (r.status === 'paid' || r.status === 'checkedin')
+        ? ` This reservation is already marked "${statusLabel[r.status]}" — the extra ${nights} night(s) aren't automatically marked paid, so make sure to collect ${extraCharge} lei from the guest.`
+        : '';
+      alert(`Stay extended to ${fmtDate(input)} for Room ${r.roomNumber}. Extra charge: ${nights} night(s) × ${rate} lei = ${extraCharge} lei.${owesReminder}`);
+
+    } else if (dateAdjustMode === 'shorten') {
+      const newCheckoutDate = parseLocalDate(input);
+      const oldCheckoutDate = parseLocalDate(r.checkout);
+      const checkinDate = parseLocalDate(r.checkin);
+      if (newCheckoutDate <= checkinDate) { alert('The new checkout date must be after the check-in date.'); return; }
+      if (newCheckoutDate >= oldCheckoutDate) { alert("That date isn't earlier than the current checkout — use Extend stay instead if they're staying longer."); return; }
+
+      const nightsReduced = Math.round((oldCheckoutDate - newCheckoutDate) / 86400000);
+      r.extras = r.extras || [];
+      r.extras.push({ catalogId: null, type: 'shortened', name: `Left ${nightsReduced} night(s) early (no refund)`, price: 0, qty: 1 });
+      r.checkout = input;
+      // TODO: PATCH /api/bookings/{id} { checkout, extras } — and re-sync
+      // availability to Beds24/Booking.com so the room shows free sooner.
+
+      closeDateAdjust();
+      renderReservations();
+      alert(`Checkout moved to ${fmtDate(input)}. No price reduction was applied — the original stay remains fully charged. Room ${r.roomNumber} is now free again starting ${fmtDate(input)}.`);
+    }
   }
 
   const statusLabel = { reserved: "Reserved", paid: "Paid", checkedin: "Checked in", cancelled: "Cancelled" };
@@ -964,8 +1009,8 @@
           <button onclick="markCancelled(${r.id})">Cancel</button>`;
       } else if (r.status === 'checkedin') {
         actions = `
-          <button onclick="extendStay(${r.id})">+ Extend stay</button>
-          <button onclick="shortenStay(${r.id})">− Leave early</button>`;
+          <button onclick="openExtendStay(${r.id})">+ Extend stay</button>
+          <button onclick="openShortenStay(${r.id})">− Leave early</button>`;
       }
     }
 
