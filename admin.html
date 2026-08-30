@@ -600,7 +600,30 @@
   function d(offsetDays){
     const dt = new Date();
     dt.setDate(dt.getDate() + offsetDays);
-    return dt.toISOString().slice(0,10);
+    return localISODate(dt);
+  }
+
+  // Formats a Date using its LOCAL year/month/day — never use
+  // toISOString() for this, since that converts to UTC first and can
+  // silently shift "today" to the wrong calendar day depending on
+  // timezone and time of day.
+  function localISODate(dt){
+    const y = dt.getFullYear(), m = String(dt.getMonth()+1).padStart(2,'0'), day = String(dt.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // Parses a "YYYY-MM-DD" string as a LOCAL date (midnight local time),
+  // instead of `new Date(str)` which the JS spec parses as UTC midnight —
+  // the source of the same day-shift bug.
+  function parseLocalDate(str){
+    const [y,m,dd] = str.split('-').map(Number);
+    return new Date(y, m-1, dd);
+  }
+
+  function today0(){
+    const t = new Date();
+    t.setHours(0,0,0,0);
+    return t;
   }
 
   // Room inventory: Standard = No. 2–8 (7 rooms), Apartament = No. 1 and 9 (2 units)
@@ -621,10 +644,10 @@
   // A cancelled reservation is excluded here, so cancelling a stay
   // automatically frees its room for new bookings over the same dates.
   function roomHasConflict(roomNumber, checkin, checkout, excludeId){
-    const s = new Date(checkin), e = new Date(checkout);
+    const s = parseLocalDate(checkin), e = parseLocalDate(checkout);
     return reservations.some(r =>
       r.id !== excludeId && r.roomNumber === roomNumber && r.status !== 'cancelled' &&
-      s < new Date(r.checkout) && new Date(r.checkin) < e
+      s < parseLocalDate(r.checkout) && parseLocalDate(r.checkin) < e
     );
   }
 
@@ -641,17 +664,16 @@
 
   function isClosed(r){
     if (r.status === 'cancelled') return true;
-    return new Date(r.checkout) < new Date(new Date().toDateString());
+    return parseLocalDate(r.checkout) < today0();
   }
 
   function fmtDate(iso){
-    const dt = new Date(iso);
-    return dt.toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return parseLocalDate(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
   }
 
   function dayOffset(dateStr, refDate){
-    const d1 = new Date(new Date(dateStr).toDateString());
-    const d0 = new Date(refDate.toDateString());
+    const d1 = parseLocalDate(dateStr);
+    const d0 = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
     return Math.round((d1 - d0) / 86400000);
   }
 
@@ -823,7 +845,7 @@
   }
 
   function renderReservations(){
-    const inPeriod = r => { const c = new Date(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
+    const inPeriod = r => { const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
     const periodReservations = reservations.filter(inPeriod);
     const active = periodReservations.filter(r => !isClosed(r));
     const closed = periodReservations.filter(r => isClosed(r));
@@ -1088,16 +1110,16 @@
 
     const revenueMonth = reservations
       .filter(r => countedStatuses.includes(r.status))
-      .filter(r => { const c = new Date(r.checkin); return c.getMonth() === thisMonth && c.getFullYear() === thisYear; })
+      .filter(r => { const c = parseLocalDate(r.checkin); return c.getMonth() === thisMonth && c.getFullYear() === thisYear; })
       .reduce((s, r) => s + (r.price || 0), 0);
 
     const revenueYear = reservations
       .filter(r => countedStatuses.includes(r.status))
-      .filter(r => new Date(r.checkin).getFullYear() === thisYear)
+      .filter(r => parseLocalDate(r.checkin).getFullYear() === thisYear)
       .reduce((s, r) => s + (r.price || 0), 0);
 
     const expenseMonth = expenses
-      .filter(e => { const dt = new Date(e.date); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; })
+      .filter(e => { const dt = parseLocalDate(e.date); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; })
       .reduce((s, e) => s + e.amount, 0);
 
     document.getElementById('rev-month').textContent = money(revenueMonth);
@@ -1114,7 +1136,7 @@
     }
     const resPerMonth = months.map(mo => ({
       label: mo.label,
-      value: reservations.filter(r => { const c = new Date(r.checkin); return c.getMonth() === mo.m && c.getFullYear() === mo.y; }).length
+      value: reservations.filter(r => { const c = parseLocalDate(r.checkin); return c.getMonth() === mo.m && c.getFullYear() === mo.y; }).length
     }));
     barChart(document.getElementById('chart-reservations'), resPerMonth);
 
@@ -1136,7 +1158,7 @@
 
     // Expenses table
     const tbody = document.getElementById('expenses-table');
-    const sorted = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date));
+    const sorted = [...expenses].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
     tbody.innerHTML = sorted.map(e => `
       <tr><td>${fmtDate(e.date)}</td><td>${e.category}</td><td>${e.note || '—'}</td><td>${money(e.amount)}</td></tr>
     `).join('');
