@@ -773,7 +773,11 @@
   }
 
   // Room inventory: Standard = No. 2–8 (7 rooms), Apartament = No. 1 and 9 (2 units)
-  const STANDARD_ROOMS = [2,3,4,5,6,7,8];
+  // Room inventory: 6 Standard rooms have a balcony, 1 (No. 5) doesn't;
+  // Apartament = No. 1 and 9 (2 units)
+  const STANDARD_ROOMS = [2,3,4,5,6,7,8];             // all 7 Standard rooms
+  const STANDARD_BALCONY_ROOMS = [2,3,4,6,7,8];        // Standard, with balcony
+  const STANDARD_NO_BALCONY_ROOMS = [5];               // Standard, no balcony — always room 5
   const APARTMENT_ROOMS = [1,9];
 
   // ---------------------------------------------------------------
@@ -857,10 +861,12 @@
 
   // If this guest has stayed in this room type before, prefer giving them
   // the same room again (their most recent stay first), if it's free.
-  function findRepeatGuestRoom(guestName, type, checkin, checkout, excludeId){
+  // `pool` is the specific set of room numbers to consider (e.g. just the
+  // no-balcony room), while `type` is the normalized type ('Standard' /
+  // 'Apartament') actually stored on past reservations, used for matching.
+  function findRepeatGuestRoom(guestName, type, pool, checkin, checkout, excludeId){
     const nameKey = (guestName || '').trim().toLowerCase();
     if (!nameKey) return null;
-    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
     const pastStays = reservations
       .filter(r => r.id !== excludeId && r.status !== 'cancelled' && r.room === type && r.guest.trim().toLowerCase() === nameKey)
       .sort((a, b) => parseLocalDate(b.checkin) - parseLocalDate(a.checkin));
@@ -884,12 +890,11 @@
     return null;
   }
 
-  function assignRoom(type, checkin, checkout, excludeId, guestName, alsoExclude){
+  function assignRoom(type, pool, checkin, checkout, excludeId, guestName, alsoExclude){
     alsoExclude = alsoExclude || [];
-    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
 
     if (guestName) {
-      const repeatRoom = findRepeatGuestRoom(guestName, type, checkin, checkout, excludeId);
+      const repeatRoom = findRepeatGuestRoom(guestName, type, pool, checkin, checkout, excludeId);
       if (repeatRoom && !alsoExclude.includes(repeatRoom)) return repeatRoom;
     }
 
@@ -1336,7 +1341,8 @@
   function roomLineHTML(){
     return `<div class="room-line">
       <select class="f-room-type" onchange="handleRoomTypeChange(this)">
-        <option value="Standard">Standard</option>
+        <option value="Standard">Standard cu balcon</option>
+        <option value="StandardNoBalcony">Standard fără balcon (nr. 5)</option>
         <option value="Apartament">Apartament</option>
       </select>
       <select class="f-room-number" onchange="this.dataset.manual='true'"></select>
@@ -1360,6 +1366,19 @@
     refreshRoomLineSuggestions();
   }
 
+  // Maps a room-line's selected form value to the pool of room numbers it
+  // draws from, and the normalized type actually stored on the reservation
+  // ('StandardNoBalcony' is just Standard room No. 5 — same stored type as
+  // regular Standard, so pricing/reports/repeat-guest matching stay simple).
+  function poolForFormType(formType){
+    if (formType === 'Apartament') return APARTMENT_ROOMS;
+    if (formType === 'StandardNoBalcony') return STANDARD_NO_BALCONY_ROOMS;
+    return STANDARD_BALCONY_ROOMS;
+  }
+  function normalizeRoomType(formType){
+    return formType === 'StandardNoBalcony' ? 'Standard' : formType;
+  }
+
   // Recomputes and redisplays which room each line would get, in order —
   // honoring room continuation and repeat-guest memory just like a real
   // submission would, but without touching the actual reservations data.
@@ -1378,7 +1397,7 @@
       if (numSel.dataset.manual === 'true' && numSel.value) claimed.push(parseInt(numSel.value, 10));
     });
 
-    // Same adjacent-block preference used at submit time, for non-manual lines of the same type.
+    // Same adjacent-block preference used at submit time, for non-manual lines of the same form type.
     const typeCounts = {};
     lines.forEach(line => {
       if (line.querySelector('.f-room-number').dataset.manual !== 'true') {
@@ -1387,18 +1406,19 @@
       }
     });
     const adjacentPool = {};
-    Object.keys(typeCounts).forEach(type => {
-      if (typeCounts[type] > 1) {
-        const pool = (type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS).filter(n => !claimed.includes(n));
-        const block = findAdjacentBlock(pool, typeCounts[type], checkin, checkout);
-        if (block) adjacentPool[type] = block.slice();
+    Object.keys(typeCounts).forEach(formType => {
+      if (typeCounts[formType] > 1) {
+        const pool = poolForFormType(formType).filter(n => !claimed.includes(n));
+        const block = findAdjacentBlock(pool, typeCounts[formType], checkin, checkout);
+        if (block) adjacentPool[formType] = block.slice();
       }
     });
 
     lines.forEach(line => {
-      const type = line.querySelector('.f-room-type').value;
+      const formType = line.querySelector('.f-room-type').value;
+      const type = normalizeRoomType(formType);
       const numSel = line.querySelector('.f-room-number');
-      const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+      const pool = poolForFormType(formType);
       const isManual = numSel.dataset.manual === 'true';
       const currentValue = numSel.value ? parseInt(numSel.value, 10) : null;
 
@@ -1408,10 +1428,10 @@
       let chosen;
       if (isManual && currentValue) {
         chosen = currentValue;
-      } else if (adjacentPool[type] && adjacentPool[type].length) {
-        chosen = adjacentPool[type].shift();
+      } else if (adjacentPool[formType] && adjacentPool[formType].length) {
+        chosen = adjacentPool[formType].shift();
       } else {
-        chosen = assignRoom(type, checkin, checkout, undefined, guest, claimed);
+        chosen = assignRoom(type, pool, checkin, checkout, undefined, guest, claimed);
       }
 
       numSel.innerHTML = available.length
@@ -1445,7 +1465,7 @@
     // was auto-suggested or the person manually picked a different one.
     const lines = Array.from(document.querySelectorAll('#f-room-lines .room-line'));
     const picks = lines.map(line => ({
-      room: line.querySelector('.f-room-type').value,
+      room: normalizeRoomType(line.querySelector('.f-room-type').value),
       roomNumber: line.querySelector('.f-room-number').value ? parseInt(line.querySelector('.f-room-number').value, 10) : null
     }));
 
