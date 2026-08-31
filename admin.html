@@ -327,12 +327,19 @@
 
       <!-- ROOMS & PRICING -->
       <section class="section" id="rooms">
-        <div class="room-grid" style="grid-template-columns:repeat(2,1fr);max-width:700px;">
+        <div class="room-grid" style="grid-template-columns:repeat(3,1fr);max-width:900px;">
           <div class="room-card">
-            <h3>Standard</h3>
-            <div class="stat-note" style="margin-bottom:4px;">7 camere de acest tip · Nr. 2–8</div>
+            <h3>Standard cu balcon</h3>
+            <div class="stat-note" style="margin-bottom:4px;">6 camere de acest tip · Nr. 2, 3, 4, 6, 7, 8</div>
             <div class="price"><input type="number" id="room-price-Standard" value="340" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Standard', this.value)"> <span>lei / noapte, bază</span></div>
             <div class="field-row">Tarif weekend <input type="number" value="390"></div>
+            <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
+          </div>
+          <div class="room-card">
+            <h3>Standard fără balcon</h3>
+            <div class="stat-note" style="margin-bottom:4px;">1 cameră de acest tip · Nr. 5</div>
+            <div class="price"><input type="number" id="room-price-StandardNoBalcony" value="300" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('StandardNoBalcony', this.value)"> <span>lei / noapte, bază</span></div>
+            <div class="field-row">Tarif weekend <input type="number" value="340"></div>
             <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
           </div>
           <div class="room-card">
@@ -532,7 +539,7 @@
     overview:     ["Prezentare generală", "Astăzi, toate camerele"],
     calendar:     ["Calendar", "Toate camerele"],
     reservations: ["Rezervări", "Toate rezervările, din orice sursă"],
-    rooms:        ["Camere & tarife", "2 tipuri de cameră"],
+    rooms:        ["Camere & tarife", "3 tarife de cameră"],
     reports:      ["Rapoarte", "Luna aceasta"]
   };
 
@@ -788,8 +795,9 @@
   // ---------------------------------------------------------------
   let catalog = {
     rooms: {
-      Standard:   { price: 340 },
-      Apartament: { price: 620 }
+      Standard:           { price: 340 },
+      StandardNoBalcony:  { price: 300 },
+      Apartament:         { price: 620 }
     },
     services: [
       { id: 'massage', name: 'Masaj', price: 120 },
@@ -806,8 +814,9 @@
     return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
   }
 
-  function roomRate(roomType){
-    return (catalog.rooms[roomType] && catalog.rooms[roomType].price) || 0;
+  function roomRate(roomType, roomNumber){
+    const key = (roomType === 'Standard' && STANDARD_NO_BALCONY_ROOMS.includes(roomNumber)) ? 'StandardNoBalcony' : roomType;
+    return (catalog.rooms[key] && catalog.rooms[key].price) || 0;
   }
 
   function updateRoomPrice(roomType, value){
@@ -1003,7 +1012,7 @@
       }
 
       const nights = Math.round((newCheckoutDate - oldCheckoutDate) / 86400000);
-      const rate = roomRate(r.room);
+      const rate = roomRate(r.room, r.roomNumber);
       const extraCharge = nights * rate;
 
       r.extras = r.extras || [];
