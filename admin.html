@@ -230,13 +230,8 @@
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
       <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Rezervări</button>
       <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Camere &amp; tarife</button>
-      <button class="nav-btn" data-section="sync"><span class="nav-dot"></span>Stare sincronizare</button>
       <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Rapoarte</button>
     </nav>
-    <div class="sidebar-foot">
-      Conectat prin Beds24
-      <div class="sync-pill"><span class="dot"></span> Ultima sincronizare acum 4 min</div>
-    </div>
   </aside>
 
   <div class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -350,7 +345,7 @@
         </div>
         <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">Acest tarif de bază este folosit și pentru a calcula automat prețul unui sejur prelungit.</p>
         <div style="margin-top:18px;margin-bottom:28px;">
-          <button class="btn btn-primary">Salvează și trimite la Booking.com</button>
+          <button class="btn btn-primary">Salvează modificările</button>
         </div>
 
         <div class="panel">
@@ -382,38 +377,6 @@
             <tbody id="maintenance-table"></tbody>
           </table>
           <p class="empty-note" id="maintenance-empty" style="display:none;">Nicio blocare activă în acest moment.</p>
-        </div>
-      </section>
-
-      <!-- SYNC STATUS -->
-      <section class="section" id="sync">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-          <button class="btn btn-outline">Sincronizare forțată</button>
-        </div>
-        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
-          <div class="stat-card">
-            <div class="stat-label">Conexiune</div>
-            <div class="stat-value" style="color:var(--teal);font-size:18px;">● Funcțională</div>
-            <div class="stat-note">Beds24 ↔ Booking.com</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Ultima sincronizare reușită</div>
-            <div class="stat-value" style="font-size:18px;">Acum 4 minute</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Interval sincronizare</div>
-            <div class="stat-value" style="font-size:18px;">La fiecare 5 min</div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><h2>Jurnal sincronizare</h2></div>
-          <table>
-            <tr><th>Oră</th><th>Direcție</th><th>Detaliu</th><th>Rezultat</th></tr>
-            <tr><td>14:32</td><td>Booking.com → site</td><td>Disponibilitate Cameră 2 actualizată (3 date)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:27</td><td>Site → Booking.com</td><td>Preț Cameră 1 actualizat</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:22</td><td>Booking.com → site</td><td>Rezervare nouă importată (Kovács Anna)</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-            <tr><td>14:17</td><td>Booking.com → site</td><td>Sincronizare disponibilitate</td><td><span class="badge badge-confirmed">OK</span></td></tr>
-          </table>
         </div>
       </section>
 
@@ -542,6 +505,11 @@
     <input type="text" id="f-guest" placeholder="ex: Ionescu Radu">
     <label>Număr de telefon</label>
     <input type="text" id="f-phone" placeholder="+40 7...">
+    <label>Sursă</label>
+    <select id="f-source">
+      <option value="direct">Direct</option>
+      <option value="booking">Booking.com</option>
+    </select>
     <label>Check-in</label>
     <input type="date" id="f-checkin">
     <label>Check-out</label>
@@ -623,7 +591,6 @@
     calendar:     ["Calendar", "Toate camerele"],
     reservations: ["Rezervări", "Toate rezervările, din orice sursă"],
     rooms:        ["Camere & tarife", "2 tipuri de cameră"],
-    sync:         ["Stare sincronizare", "Beds24 ↔ Booking.com"],
     reports:      ["Rapoarte", "Luna aceasta"]
   };
 
@@ -635,7 +602,7 @@
     document.getElementById('page-title').textContent = meta[id][0];
     document.getElementById('page-sub').textContent = meta[id][1];
 
-    const hideAddBooking = (id === 'reports' || id === 'sync' || id === 'rooms');
+    const hideAddBooking = (id === 'reports' || id === 'rooms');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
     document.querySelector('.content').scrollTop = 0;
@@ -681,12 +648,12 @@
 
   // ---------------------------------------------------------------
   // RESERVATIONS — data model
-  // source: 'booking' | 'direct'   (direct covers phone / email / manual)
+  // source: 'booking' | 'direct'   (chosen manually when a reservation is created —
+  //   there's no live Booking.com sync, so every booking is entered by hand and
+  //   tagged with where it actually came from, for reporting/tracking purposes only)
   // status: 'reserved' | 'paid' | 'checkedin'
   // A card is auto-treated as "closed" once checkout date < today,
   // regardless of status — it moves to the Closed tab.
-  // TODO: replace this mock array with fetch('/api/bookings') once the
-  // backend is wired to Beds24.
   // ---------------------------------------------------------------
   function d(offsetDays){
     const dt = new Date();
@@ -1091,10 +1058,12 @@
       const extraCharge = nights * rate;
 
       r.extras = r.extras || [];
-      r.extras.push({ catalogId: null, type: 'extension', name: 'Noapte suplimentară', price: rate, qty: nights });
+      const extensionExtra = { catalogId: null, type: 'extension', name: 'Noapte suplimentară', price: rate, qty: nights };
+      r.extras.push(extensionExtra);
       r.checkout = input;
-      // TODO: PATCH /api/bookings/{id} { checkout, extras } — and ideally re-sync
-      // availability to Beds24/Booking.com for the extended date range.
+
+      dbUpdateReservation(r.id, { checkout: r.checkout });
+      dbAddExtra(r.id, extensionExtra).then(saved => { if (saved && saved.id) extensionExtra.id = saved.id; });
 
       closeDateAdjust();
       renderReservations();
@@ -1113,10 +1082,12 @@
 
       const nightsReduced = Math.round((oldCheckoutDate - newCheckoutDate) / 86400000);
       r.extras = r.extras || [];
-      r.extras.push({ catalogId: null, type: 'shortened', name: `A plecat cu ${nightsReduced} noapte(nopți) mai devreme (fără rambursare)`, price: 0, qty: 1 });
+      const shortenedExtra = { catalogId: null, type: 'shortened', name: `A plecat cu ${nightsReduced} noapte(nopți) mai devreme (fără rambursare)`, price: 0, qty: 1 };
+      r.extras.push(shortenedExtra);
       r.checkout = input;
-      // TODO: PATCH /api/bookings/{id} { checkout, extras } — and re-sync
-      // availability to Beds24/Booking.com so the room shows free sooner.
+
+      dbUpdateReservation(r.id, { checkout: r.checkout });
+      dbAddExtra(r.id, shortenedExtra).then(saved => { if (saved && saved.id) shortenedExtra.id = saved.id; });
 
       closeDateAdjust();
       renderReservations();
@@ -1440,6 +1411,7 @@
   function openAddBooking(){
     showSection('reservations');
     document.getElementById('f-room-lines').innerHTML = roomLineHTML(); // reset to a single room line
+    document.getElementById('f-source').value = 'direct';
     document.getElementById('add-booking-modal').classList.add('open');
     document.body.classList.add('modal-open');
   }
@@ -1450,6 +1422,7 @@
   async function submitAddBooking(){
     const guest = document.getElementById('f-guest').value.trim();
     const phone = document.getElementById('f-phone').value.trim();
+    const source = document.getElementById('f-source').value;
     const checkin = document.getElementById('f-checkin').value;
     const checkout = document.getElementById('f-checkout').value;
     const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
@@ -1486,7 +1459,7 @@
       assigned.push({ room, roomNumber });
       createdIds.push(newId);
       // Reserve it immediately so the next loop iteration sees it as taken.
-      reservations.push({ id: newId, guest, phone, room, roomNumber, source: 'direct', status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
+      reservations.push({ id: newId, guest, phone, room, roomNumber, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
     }
 
     // Link all the just-created rows together if more than one room was booked.
