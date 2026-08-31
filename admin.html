@@ -615,6 +615,7 @@
 
 <button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Înapoi sus">↑</button>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Section titles + subtitles shown in the topbar per section
   const meta = {
@@ -716,6 +717,152 @@
     return t;
   }
 
+  // ---------------------------------------------------------------
+  // DATABASE (Supabase) — fill these in once you've created a Supabase
+  // project and run supabase/schema.sql (see supabase/README.md):
+  //   const SUPABASE_URL = 'https://xxxxx.supabase.co';
+  //   const SUPABASE_ANON_KEY = 'eyJ...';
+  // Left blank, the dashboard runs standalone with local demo data
+  // only — nothing is saved between page loads.
+  // ---------------------------------------------------------------
+  const SUPABASE_URL = 'https://gyvqgeqrogspmnhjwlse.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_eMusZ8c8-e0qp6VYR_wD8w_mExIzwnM';
+
+  const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+  async function dbLoadState(){
+    if (!sb) return null;
+    try {
+      const [resv, extr, rooms, services, minibar, expenses, maintenance] = await Promise.all([
+        sb.from('reservations').select('*').order('id'),
+        sb.from('extras').select('*'),
+        sb.from('room_prices').select('*'),
+        sb.from('services').select('*'),
+        sb.from('minibar').select('*'),
+        sb.from('expenses').select('*').order('date', { ascending: false }),
+        sb.from('maintenance').select('*').order('from_date')
+      ]);
+      [resv, extr, rooms, services, minibar, expenses, maintenance].forEach(r => { if (r.error) throw r.error; });
+
+      const extrasByRes = {};
+      (extr.data || []).forEach(e => {
+        (extrasByRes[e.reservation_id] = extrasByRes[e.reservation_id] || []).push(
+          { id: e.id, catalogId: e.catalog_id, type: e.type, name: e.name, price: e.price, qty: e.qty }
+        );
+      });
+
+      const reservationsOut = (resv.data || []).map(r => ({
+        id: r.id, guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.room_number,
+        source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
+        price: r.price, groupId: r.group_id, extras: extrasByRes[r.id] || []
+      }));
+
+      const roomsOut = {};
+      (rooms.data || []).forEach(rp => { roomsOut[rp.room_type] = { price: rp.price }; });
+
+      return {
+        reservations: reservationsOut,
+        catalog: { rooms: roomsOut, services: services.data || [], minibar: minibar.data || [] },
+        expenses: expenses.data || [],
+        maintenance: (maintenance.data || []).map(m => ({ id: m.id, roomNumber: m.room_number, from: m.from_date, to: m.to_date, reason: m.reason }))
+      };
+    } catch (err) {
+      console.error('Încărcarea din Supabase a eșuat:', err);
+      return null;
+    }
+  }
+
+  async function dbCreateReservation(r){
+    if (!sb) return null;
+    const { data, error } = await sb.from('reservations').insert({
+      guest: r.guest, phone: r.phone, room: r.room, room_number: r.roomNumber,
+      source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
+      price: r.price, group_id: r.groupId
+    }).select().single();
+    if (error) { console.error(error); return null; }
+    return { id: data.id };
+  }
+
+  async function dbUpdateReservation(id, fields){
+    if (!sb) return;
+    const columnMap = { roomNumber: 'room_number', groupId: 'group_id' };
+    const payload = {};
+    Object.keys(fields).forEach(k => { payload[columnMap[k] || k] = fields[k]; });
+    const { error } = await sb.from('reservations').update(payload).eq('id', id);
+    if (error) console.error(error);
+  }
+
+  async function dbDeleteReservation(id){
+    if (!sb) return;
+    const { error } = await sb.from('reservations').delete().eq('id', id);
+    if (error) console.error(error);
+  }
+
+  async function dbAddExtra(reservationId, extra){
+    if (!sb) return null;
+    const { data, error } = await sb.from('extras').insert({
+      reservation_id: reservationId, catalog_id: extra.catalogId, type: extra.type,
+      name: extra.name, price: extra.price, qty: extra.qty
+    }).select().single();
+    if (error) { console.error(error); return null; }
+    if (extra.type === 'minibar' && extra.catalogId) {
+      const { data: item } = await sb.from('minibar').select('stock').eq('id', extra.catalogId).single();
+      if (item) await sb.from('minibar').update({ stock: item.stock - extra.qty }).eq('id', extra.catalogId);
+    }
+    return { id: data.id };
+  }
+
+  async function dbRemoveExtra(extraId, catalogId, type, qty){
+    if (!sb) return;
+    const { error } = await sb.from('extras').delete().eq('id', extraId);
+    if (error) console.error(error);
+    if (type === 'minibar' && catalogId) {
+      const { data: item } = await sb.from('minibar').select('stock').eq('id', catalogId).single();
+      if (item) await sb.from('minibar').update({ stock: item.stock + qty }).eq('id', catalogId);
+    }
+  }
+
+  async function dbUpdateRoomPrice(roomType, price){
+    if (!sb) return;
+    const { error } = await sb.from('room_prices').update({ price }).eq('room_type', roomType);
+    if (error) console.error(error);
+  }
+
+  async function dbUpdateCatalogPrice(type, id, price){
+    if (!sb) return;
+    const table = type === 'service' ? 'services' : 'minibar';
+    const { error } = await sb.from(table).update({ price }).eq('id', id);
+    if (error) console.error(error);
+  }
+
+  async function dbRestockMinibar(id, qty){
+    if (!sb) return;
+    const { data: item } = await sb.from('minibar').select('stock').eq('id', id).single();
+    if (item) await sb.from('minibar').update({ stock: item.stock + qty }).eq('id', id);
+  }
+
+  async function dbAddExpense(exp){
+    if (!sb) return null;
+    const { data, error } = await sb.from('expenses').insert({ date: exp.date, category: exp.category, note: exp.note, amount: exp.amount }).select().single();
+    if (error) { console.error(error); return null; }
+    return { id: data.id };
+  }
+
+  async function dbAddMaintenance(m){
+    if (!sb) return null;
+    const { data, error } = await sb.from('maintenance').insert({ room_number: m.roomNumber, from_date: m.from, to_date: m.to, reason: m.reason }).select().single();
+    if (error) { console.error(error); return null; }
+    return { id: data.id };
+  }
+
+  async function dbRemoveMaintenance(id){
+    if (!sb) return;
+    const { error } = await sb.from('maintenance').delete().eq('id', id);
+    if (error) console.error(error);
+  }
+
   // Room inventory: Standard = No. 2–8 (7 rooms), Apartament = No. 1 and 9 (2 units)
   const STANDARD_ROOMS = [2,3,4,5,6,7,8];
   const APARTMENT_ROOMS = [1,9];
@@ -751,8 +898,9 @@
   }
 
   function updateRoomPrice(roomType, value){
-    if (catalog.rooms[roomType]) catalog.rooms[roomType].price = parseFloat(value) || 0;
-    // TODO: PATCH /api/catalog/rooms/{roomType} { price }
+    const price = parseFloat(value) || 0;
+    if (catalog.rooms[roomType]) catalog.rooms[roomType].price = price;
+    dbUpdateRoomPrice(roomType, price);
   }
 
   function extrasTotal(r){
@@ -1244,21 +1392,23 @@
     const r = reservations.find(x => x.id === id);
     if (r) r.status = 'paid';
     renderReservations();
-    // TODO: PATCH /api/bookings/{id} { status: 'paid' }
+    dbUpdateReservation(id, { status: 'paid' });
   }
 
   function markCheckedIn(id){
     const r = reservations.find(x => x.id === id);
     if (r) r.status = 'checkedin'; // checking in always implies paid
     renderReservations();
-    // TODO: PATCH /api/bookings/{id} { status: 'checkedin', paid: true }
+    dbUpdateReservation(id, { status: 'checkedin' });
   }
 
   function markCancelled(id){
     const r = reservations.find(x => x.id === id);
-    if (r && confirm(`Anulezi rezervarea pentru ${r.guest}?`)) r.status = 'cancelled';
+    if (r && confirm(`Anulezi rezervarea pentru ${r.guest}?`)) {
+      r.status = 'cancelled';
+      dbUpdateReservation(id, { status: 'cancelled' });
+    }
     renderReservations();
-    // TODO: PATCH /api/bookings/{id} { status: 'cancelled' }
   }
 
   function showResTab(tab){
@@ -1297,7 +1447,7 @@
     document.getElementById('add-booking-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
   }
-  function submitAddBooking(){
+  async function submitAddBooking(){
     const guest = document.getElementById('f-guest').value.trim();
     const phone = document.getElementById('f-phone').value.trim();
     const checkin = document.getElementById('f-checkin').value;
@@ -1327,6 +1477,7 @@
       let roomNumber = (adjacentPool[room] && adjacentPool[room].length) ? adjacentPool[room].shift() : assignRoom(room, checkin, checkout, undefined, guest);
       if (!roomNumber) {
         // Roll back any rooms already created for this booking — never leave orphans.
+        // (Nothing has been sent to the backend yet at this point, so there's nothing to undo there.)
         reservations = reservations.filter(r => !createdIds.includes(r.id));
         alert(`Nu mai sunt camere ${room === 'Apartament' ? 'de tip Apartament' : 'de tip Standard'} libere pentru acele date, așa că rezervarea nu a fost creată. Ajustează datele sau combinația de camere și încearcă din nou.`);
         return;
@@ -1344,11 +1495,19 @@
       const justAdded = reservations.slice(-assigned.length);
       justAdded.forEach(r => r.groupId = groupId);
     }
-    // TODO: POST /api/bookings — one call per room, sharing a groupId when >1 room
+
+    const newlyCreated = reservations.slice(-assigned.length);
 
     closeAddBooking();
     ['f-guest','f-phone','f-checkin','f-checkout'].forEach(id => document.getElementById(id).value = '');
     showResTab('active');
+
+    // Persist each room to the database, then swap the temporary local id
+    // for the real database id so later edits/deletes target the right row.
+    for (const r of newlyCreated) {
+      const saved = await dbCreateReservation(r);
+      if (saved && saved.id) r.id = saved.id;
+    }
   }
 
   function linkedReservations(r){
@@ -1377,8 +1536,9 @@
 
   function updateCatalogPrice(type, id, value){
     const item = findCatalogItem(type, id);
-    if (item) item.price = parseFloat(value) || 0;
-    // TODO: PATCH /api/catalog/{type}/{id} { price }
+    const price = parseFloat(value) || 0;
+    if (item) item.price = price;
+    dbUpdateCatalogPrice(type, id, price);
     renderReservations(); // refreshes the Extras dropdowns' prices too
   }
 
@@ -1401,7 +1561,7 @@
     const qty = parseInt(prompt(`Câte bucăți de ${item.name} adaugi în stoc?`, '10'), 10);
     if (qty > 0) {
       item.stock += qty;
-      // TODO: PATCH /api/catalog/minibar/{id} { stock }
+      dbRestockMinibar(id, qty);
       renderInventoryTable();
     }
   }
@@ -1443,7 +1603,7 @@
     document.body.classList.remove('modal-open');
   }
 
-  function submitAddMaintenance(){
+  async function submitAddMaintenance(){
     const roomNumber = parseInt(document.getElementById('m-room').value, 10);
     const from = document.getElementById('m-from').value;
     const to = document.getElementById('m-to').value;
@@ -1451,19 +1611,25 @@
     if (!from || !to) { alert('Te rugăm completează perioada de blocare.'); return; }
     if (parseLocalDate(to) <= parseLocalDate(from)) { alert('Data de final trebuie să fie după data de început.'); return; }
 
-    maintenanceBlocks.push({ id: Date.now(), roomNumber, from, to, reason });
-    // TODO: POST /api/maintenance { roomNumber, from, to, reason }
+    const newBlock = { id: Date.now(), roomNumber, from, to, reason };
+    maintenanceBlocks.push(newBlock);
 
     closeAddMaintenance();
     document.getElementById('m-reason').value = '';
     renderMaintenanceTable();
     renderGantt();
+
+    const saved = await dbAddMaintenance({ roomNumber, from, to, reason });
+    if (saved && saved.id) {
+      newBlock.id = saved.id; // needed so removal targets the right backend row
+      renderMaintenanceTable();
+    }
   }
 
   function removeMaintenance(id){
     if (!confirm('Elimini această blocare pentru întreținere?')) return;
     maintenanceBlocks = maintenanceBlocks.filter(m => m.id !== id);
-    // TODO: DELETE /api/maintenance/{id}
+    dbRemoveMaintenance(id);
     renderMaintenanceTable();
     renderGantt();
   }
@@ -1519,7 +1685,7 @@
       </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Total extra</span><span>${extrasTotal(r)} lei</span></div>`;
   }
 
-  function addExtraToEditing(type){
+  async function addExtraToEditing(type){
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
     const selectId = type === 'service' ? 'e2-service-select' : 'e2-minibar-select';
@@ -1534,12 +1700,17 @@
       item.stock -= qty; // decrement shared inventory immediately
     }
 
+    const newExtra = { catalogId, type, name: item.name, price: item.price, qty };
     r.extras = r.extras || [];
-    r.extras.push({ catalogId, type, name: item.name, price: item.price, qty });
-    // TODO: POST /api/bookings/{id}/extras { catalogId, type, qty }
-
+    r.extras.push(newExtra);
     renderEditExtras();
     renderInventoryTable();
+
+    const saved = await dbAddExtra(r.id, newExtra);
+    if (saved && saved.id) {
+      newExtra.id = saved.id; // needed so removal can target the right backend row
+      renderEditExtras();
+    }
   }
 
   function removeExtraFromEditing(index){
@@ -1551,7 +1722,7 @@
       if (item) item.stock += removed.qty; // restock on removal
     }
     r.extras.splice(index, 1);
-    // TODO: DELETE /api/bookings/{id}/extras/{index}
+    if (removed.id) dbRemoveExtra(removed.id, removed.catalogId, removed.type, removed.qty);
 
     renderEditExtras();
     renderInventoryTable();
@@ -1587,7 +1758,11 @@
     r.source = document.getElementById('e2-source').value;
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
-    // TODO: PATCH /api/bookings/{id} with the full updated object
+
+    dbUpdateReservation(r.id, {
+      guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.roomNumber,
+      source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout, price: r.price
+    });
 
     closeEditReservation();
     renderReservations(); // cascades to overview stats, Gantt, and reports automatically
@@ -1604,7 +1779,7 @@
         }
       });
       reservations = reservations.filter(x => x.id !== editingId);
-      // TODO: DELETE /api/bookings/{id}
+      dbDeleteReservation(editingId);
       closeEditReservation();
       renderReservations();
     }
@@ -1628,19 +1803,22 @@
     document.getElementById('add-expense-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
   }
-  function submitAddExpense(){
+  async function submitAddExpense(){
     const category = document.getElementById('e-category').value;
     const note = document.getElementById('e-note').value.trim();
     const amount = parseFloat(document.getElementById('e-amount').value);
     const date = document.getElementById('e-date').value || d(0);
     if (!amount || amount <= 0) { alert('Te rugăm introdu o sumă validă.'); return; }
 
-    expenses.push({ id: Date.now(), date, category, note, amount });
-    // TODO: POST /api/expenses { category, note, amount, date }
+    const newExpense = { id: Date.now(), date, category, note, amount };
+    expenses.push(newExpense);
 
     closeAddExpense();
     ['e-note','e-amount'].forEach(id => document.getElementById(id).value = '');
     renderReports();
+
+    const saved = await dbAddExpense({ date, category, note, amount });
+    if (saved && saved.id) newExpense.id = saved.id;
   }
 
   function money(n){ return n.toLocaleString('ro-RO') + ' lei'; }
@@ -1742,20 +1920,36 @@
     document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
   }
 
-  renderPeriodSelectors();
-  renderReservations();
+  // ---------------------------------------------------------------
+  // STARTUP — try loading real saved data from the backend first; if
+  // none is configured (API_BASE is blank) or it's unreachable, the
+  // dashboard falls back to the built-in demo data defined above.
+  // ---------------------------------------------------------------
+  async function loadInitialState(){
+    const state = await dbLoadState();
+    if (!state) return; // no backend configured/reachable — keep demo data
 
-  // Set up the initial history entry, and honor a section in the URL hash
-  // (e.g. reloading on #reports keeps you on Reports).
-  const startSection = (location.hash || '#overview').slice(1);
-  const validStart = document.getElementById(startSection) ? startSection : 'overview';
-  history.replaceState({ section: validStart }, '', '#' + validStart);
-  if (validStart !== 'overview') showSection(validStart, true);
+    reservations = state.reservations;
+    catalog.rooms = state.catalog.rooms;
+    catalog.services = state.catalog.services;
+    catalog.minibar = state.catalog.minibar;
+    expenses = state.expenses;
+    maintenanceBlocks = state.maintenance;
+  }
 
-  // TODO: replace remaining mock table/card data (rooms, sync log)
-  // with fetch() calls to your backend once connected, e.g.:
-  // fetch('/api/rooms').then(r => r.json()).then(renderRooms);
-  // fetch('/api/sync-log').then(r => r.json()).then(renderSyncLog);
+  (async () => {
+    await loadInitialState();
+
+    renderPeriodSelectors();
+    renderReservations();
+
+    // Set up the initial history entry, and honor a section in the URL hash
+    // (e.g. reloading on #reports keeps you on Reports).
+    const startSection = (location.hash || '#overview').slice(1);
+    const validStart = document.getElementById(startSection) ? startSection : 'overview';
+    history.replaceState({ section: validStart }, '', '#' + validStart);
+    if (validStart !== 'overview') showSection(validStart, true);
+  })();
 </script>
 
 </body>
