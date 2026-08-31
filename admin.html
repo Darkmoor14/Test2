@@ -349,15 +349,6 @@
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Tarife servicii</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Aceste prețuri sunt folosite automat când adaugi un serviciu la rezervarea unui oaspete.</p>
-          <table>
-            <tr><th>Serviciu</th><th>Preț (lei)</th></tr>
-            <tbody id="services-pricing-table"></tbody>
-          </table>
-        </div>
-
-        <div class="panel">
           <div class="panel-head"><h2>Tarife minibar</h2></div>
           <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocurile se gestionează pe pagina Rapoarte — prețurile de aici se aplică peste tot, inclusiv acolo.</p>
           <table>
@@ -382,7 +373,7 @@
 
       <!-- REPORTS -->
       <section class="section" id="reports">
-        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
           <div class="stat-card">
             <div class="stat-label">Venit luna selectată</div>
             <div class="stat-value" id="rev-month">–</div>
@@ -390,14 +381,6 @@
           <div class="stat-card">
             <div class="stat-label">Venit anul selectat</div>
             <div class="stat-value" id="rev-year">–</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Cheltuieli luna selectată</div>
-            <div class="stat-value" id="exp-month" style="color:var(--red);">–</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Net luna selectată</div>
-            <div class="stat-value" id="net-month">–</div>
           </div>
         </div>
 
@@ -418,18 +401,6 @@
         </div>
 
         <div class="panel">
-          <div class="panel-head">
-            <h2>Cheltuieli</h2>
-            <button class="btn btn-primary" onclick="openAddExpense()">+ Adaugă cheltuială</button>
-          </div>
-          <table>
-            <tr><th>Dată</th><th>Categorie</th><th>Notă</th><th>Sumă</th></tr>
-            <tbody id="expenses-table"></tbody>
-          </table>
-          <p class="empty-note" id="expenses-empty" style="display:none;">Nicio cheltuială înregistrată încă.</p>
-        </div>
-
-        <div class="panel">
           <div class="panel-head"><h2>Inventar minibar</h2></div>
           <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocul scade automat când un produs de minibar este adăugat la rezervarea unui oaspete. Realimentează aici după ce completezi camerele — prețurile se setează pe pagina Camere &amp; tarife.</p>
           <table>
@@ -439,30 +410,6 @@
         </div>
       </section>
 
-    </div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="add-expense-modal">
-  <div class="modal">
-    <h2>Adaugă cheltuială</h2>
-    <label>Categorie</label>
-    <select id="e-category">
-      <option>Alimente</option>
-      <option>Reparații</option>
-      <option>Utilități</option>
-      <option>Consumabile</option>
-      <option>Altele</option>
-    </select>
-    <label>Notă (opțional)</label>
-    <input type="text" id="e-note" placeholder="ex: instalator, chiuvetă camera 3">
-    <label>Sumă (lei)</label>
-    <input type="number" id="e-amount" placeholder="0">
-    <label>Dată</label>
-    <input type="date" id="e-date">
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeAddExpense()">Anulează</button>
-      <button class="btn btn-primary" onclick="submitAddExpense()">Adaugă cheltuială</button>
     </div>
   </div>
 </div>
@@ -502,7 +449,7 @@
   <div class="modal">
     <h2>Adaugă rezervare</h2>
     <label>Nume oaspete</label>
-    <input type="text" id="f-guest" placeholder="ex: Ionescu Radu">
+    <input type="text" id="f-guest" placeholder="ex: Ionescu Radu" onchange="refreshRoomLineSuggestions()">
     <label>Număr de telefon</label>
     <input type="text" id="f-phone" placeholder="+40 7...">
     <label>Sursă</label>
@@ -511,9 +458,9 @@
       <option value="booking">Booking.com</option>
     </select>
     <label>Check-in</label>
-    <input type="date" id="f-checkin">
+    <input type="date" id="f-checkin" onchange="refreshRoomLineSuggestions()">
     <label>Check-out</label>
-    <input type="date" id="f-checkout">
+    <input type="date" id="f-checkout" onchange="refreshRoomLineSuggestions()">
     <label>Cameră/Camere</label>
     <div id="f-room-lines"></div>
     <button type="button" class="btn btn-outline" style="margin-top:8px;font-size:12px;padding:6px 12px;" onclick="addRoomLine()">+ Adaugă altă cameră</button>
@@ -561,11 +508,6 @@
     <div id="e2-extras-list" style="font-size:13px;"></div>
 
     <div style="display:flex;gap:6px;margin-top:10px;align-items:center;">
-      <select id="e2-service-select" style="flex:1;"></select>
-      <input type="number" id="e2-service-qty" value="1" min="1" style="width:52px;">
-      <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('service')">+ Adaugă</button>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
       <select id="e2-minibar-select" style="flex:1;"></select>
       <input type="number" id="e2-minibar-qty" value="1" min="1" style="width:52px;">
       <button type="button" class="btn btn-outline" style="padding:6px 10px;font-size:12px;" onclick="addExtraToEditing('minibar')">+ Adaugă</button>
@@ -942,18 +884,20 @@
     return null;
   }
 
-  function assignRoom(type, checkin, checkout, excludeId, guestName){
+  function assignRoom(type, checkin, checkout, excludeId, guestName, alsoExclude){
+    alsoExclude = alsoExclude || [];
     const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
 
     if (guestName) {
       const repeatRoom = findRepeatGuestRoom(guestName, type, checkin, checkout, excludeId);
-      if (repeatRoom) return repeatRoom;
+      if (repeatRoom && !alsoExclude.includes(repeatRoom)) return repeatRoom;
     }
 
     // Room continuation: if a room of this type frees up exactly on this
     // guest's check-in date (a same-day turnover), reuse that room instead
     // of scattering back-to-back bookings across different rooms.
     const continuationCandidates = pool.filter(num => {
+      if (alsoExclude.includes(num)) return false;
       const freesUpHere = reservations.some(r =>
         r.id !== excludeId && r.roomNumber === num && r.status !== 'cancelled' &&
         parseLocalDate(r.checkout).getTime() === parseLocalDate(checkin).getTime()
@@ -963,7 +907,7 @@
     if (continuationCandidates.length) return continuationCandidates[0];
 
     for (const num of pool) {
-      if (!roomHasConflict(num, checkin, checkout, excludeId)) return num;
+      if (!alsoExclude.includes(num) && !roomHasConflict(num, checkin, checkout, excludeId)) return num;
     }
     return null; // fully booked for those dates
   }
@@ -1391,21 +1335,91 @@
 
   function roomLineHTML(){
     return `<div class="room-line">
-      <select class="f-room-type">
+      <select class="f-room-type" onchange="handleRoomTypeChange(this)">
         <option value="Standard">Standard</option>
         <option value="Apartament">Apartament</option>
       </select>
+      <select class="f-room-number" onchange="this.dataset.manual='true'"></select>
       <button type="button" onclick="removeRoomLine(this)" title="Elimină această cameră">✕</button>
     </div>`;
   }
 
   function addRoomLine(){
     document.getElementById('f-room-lines').insertAdjacentHTML('beforeend', roomLineHTML());
+    refreshRoomLineSuggestions();
   }
 
   function removeRoomLine(btn){
     const lines = document.querySelectorAll('#f-room-lines .room-line');
     if (lines.length > 1) btn.closest('.room-line').remove(); // always keep at least one room
+    refreshRoomLineSuggestions();
+  }
+
+  function handleRoomTypeChange(sel){
+    sel.closest('.room-line').querySelector('.f-room-number').dataset.manual = ''; // room type changed — old pick no longer applies
+    refreshRoomLineSuggestions();
+  }
+
+  // Recomputes and redisplays which room each line would get, in order —
+  // honoring room continuation and repeat-guest memory just like a real
+  // submission would, but without touching the actual reservations data.
+  // A line the person has manually picked a room for keeps that choice
+  // (and that room is excluded from the auto-suggestions for other lines).
+  function refreshRoomLineSuggestions(){
+    const checkin = document.getElementById('f-checkin').value;
+    const checkout = document.getElementById('f-checkout').value;
+    if (!checkin || !checkout) return; // nothing to suggest without dates yet
+    const guest = document.getElementById('f-guest').value.trim();
+
+    const lines = Array.from(document.querySelectorAll('#f-room-lines .room-line'));
+    const claimed = [];
+    lines.forEach(line => {
+      const numSel = line.querySelector('.f-room-number');
+      if (numSel.dataset.manual === 'true' && numSel.value) claimed.push(parseInt(numSel.value, 10));
+    });
+
+    // Same adjacent-block preference used at submit time, for non-manual lines of the same type.
+    const typeCounts = {};
+    lines.forEach(line => {
+      if (line.querySelector('.f-room-number').dataset.manual !== 'true') {
+        const t = line.querySelector('.f-room-type').value;
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+      }
+    });
+    const adjacentPool = {};
+    Object.keys(typeCounts).forEach(type => {
+      if (typeCounts[type] > 1) {
+        const pool = (type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS).filter(n => !claimed.includes(n));
+        const block = findAdjacentBlock(pool, typeCounts[type], checkin, checkout);
+        if (block) adjacentPool[type] = block.slice();
+      }
+    });
+
+    lines.forEach(line => {
+      const type = line.querySelector('.f-room-type').value;
+      const numSel = line.querySelector('.f-room-number');
+      const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+      const isManual = numSel.dataset.manual === 'true';
+      const currentValue = numSel.value ? parseInt(numSel.value, 10) : null;
+
+      // Every free room of this type is selectable, plus the current manual pick even if full.
+      const available = pool.filter(num => !roomHasConflict(num, checkin, checkout) || num === currentValue);
+
+      let chosen;
+      if (isManual && currentValue) {
+        chosen = currentValue;
+      } else if (adjacentPool[type] && adjacentPool[type].length) {
+        chosen = adjacentPool[type].shift();
+      } else {
+        chosen = assignRoom(type, checkin, checkout, undefined, guest, claimed);
+      }
+
+      numSel.innerHTML = available.length
+        ? available.map(num => `<option value="${num}" ${num === chosen ? 'selected' : ''}>Nr. ${num}${num === chosen && !isManual ? ' (sugerat automat)' : ''}</option>`).join('')
+        : `<option value="">Nicio cameră liberă</option>`;
+      if (!isManual && chosen) numSel.value = chosen;
+      if (chosen) claimed.push(chosen);
+    });
   }
 
   function openAddBooking(){
@@ -1425,51 +1439,49 @@
     const source = document.getElementById('f-source').value;
     const checkin = document.getElementById('f-checkin').value;
     const checkout = document.getElementById('f-checkout').value;
-    const roomTypes = Array.from(document.querySelectorAll('#f-room-lines .f-room-type')).map(s => s.value);
     if (!guest || !checkin || !checkout) { alert('Te rugăm completează numele oaspetelui, data de check-in și data de check-out.'); return; }
 
-    // If 2+ rooms of the same type are being booked together, try to find
-    // a contiguous block of free room numbers first, so a group ends up
-    // next to each other instead of scattered across the building.
-    const typeCounts = {};
-    roomTypes.forEach(t => { typeCounts[t] = (typeCounts[t] || 0) + 1; });
-    const adjacentPool = {}; // type -> array of pre-picked room numbers to consume in order
-    Object.keys(typeCounts).forEach(type => {
-      if (typeCounts[type] > 1) {
-        const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
-        const block = findAdjacentBlock(pool, typeCounts[type], checkin, checkout);
-        if (block) adjacentPool[type] = block.slice();
-      }
-    });
+    // Read whatever room number is currently shown per line — whether it
+    // was auto-suggested or the person manually picked a different one.
+    const lines = Array.from(document.querySelectorAll('#f-room-lines .room-line'));
+    const picks = lines.map(line => ({
+      room: line.querySelector('.f-room-type').value,
+      roomNumber: line.querySelector('.f-room-number').value ? parseInt(line.querySelector('.f-room-number').value, 10) : null
+    }));
 
-    // Assign a room for each line one at a time, so the 2nd/3rd room
-    // never gets offered the same number as the one just taken.
-    const assigned = [];
-    const createdIds = [];
-    for (const room of roomTypes) {
-      let roomNumber = (adjacentPool[room] && adjacentPool[room].length) ? adjacentPool[room].shift() : assignRoom(room, checkin, checkout, undefined, guest);
-      if (!roomNumber) {
-        // Roll back any rooms already created for this booking — never leave orphans.
-        // (Nothing has been sent to the backend yet at this point, so there's nothing to undo there.)
-        reservations = reservations.filter(r => !createdIds.includes(r.id));
-        alert(`Nu mai sunt camere ${room === 'Apartament' ? 'de tip Apartament' : 'de tip Standard'} libere pentru acele date, așa că rezervarea nu a fost creată. Ajustează datele sau combinația de camere și încearcă din nou.`);
+    const seen = new Set();
+    for (const p of picks) {
+      if (!p.roomNumber) {
+        alert(`Nu mai sunt camere ${p.room === 'Apartament' ? 'de tip Apartament' : 'de tip Standard'} libere pentru acele date.`);
         return;
       }
-      const newId = Date.now() + assigned.length;
-      assigned.push({ room, roomNumber });
-      createdIds.push(newId);
-      // Reserve it immediately so the next loop iteration sees it as taken.
-      reservations.push({ id: newId, guest, phone, room, roomNumber, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] });
+      if (seen.has(p.roomNumber)) {
+        alert(`Camera Nr. ${p.roomNumber} a fost aleasă de două ori — alege camere diferite pentru fiecare linie.`);
+        return;
+      }
+      seen.add(p.roomNumber);
     }
+    // Final safety check — something else could have booked one of these rooms
+    // in the moment between opening this form and clicking Submit.
+    for (const p of picks) {
+      if (roomHasConflict(p.roomNumber, checkin, checkout)) {
+        alert(`Camera Nr. ${p.roomNumber} nu mai este liberă pentru acele date — te rugăm alege altă cameră.`);
+        refreshRoomLineSuggestions();
+        return;
+      }
+    }
+
+    const newlyCreated = picks.map((p, i) => {
+      const row = { id: Date.now() + i, guest, phone, room: p.room, roomNumber: p.roomNumber, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] };
+      reservations.push(row);
+      return row;
+    });
 
     // Link all the just-created rows together if more than one room was booked.
-    if (assigned.length > 1) {
+    if (newlyCreated.length > 1) {
       const groupId = 'grp' + Date.now();
-      const justAdded = reservations.slice(-assigned.length);
-      justAdded.forEach(r => r.groupId = groupId);
+      newlyCreated.forEach(r => r.groupId = groupId);
     }
-
-    const newlyCreated = reservations.slice(-assigned.length);
 
     closeAddBooking();
     ['f-guest','f-phone','f-checkin','f-checkout'].forEach(id => document.getElementById(id).value = '');
@@ -1493,12 +1505,6 @@
   // one shared catalog object, so it's reflected everywhere at once.
   // ---------------------------------------------------------------
   function renderPricingTables(){
-    const svcEl = document.getElementById('services-pricing-table');
-    if (svcEl) {
-      svcEl.innerHTML = catalog.services.map(s => `
-        <tr><td>${s.name}</td><td><input type="number" value="${s.price}" style="width:80px;" onchange="updateCatalogPrice('service','${s.id}',this.value)"></td></tr>
-      `).join('');
-    }
     const mbEl = document.getElementById('minibar-pricing-table');
     if (mbEl) {
       mbEl.innerHTML = catalog.minibar.map(m => `
@@ -1635,7 +1641,6 @@
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
 
-    document.getElementById('e2-service-select').innerHTML = catalog.services.map(s => `<option value="${s.id}">${s.name} — ${s.price} lei</option>`).join('');
     document.getElementById('e2-minibar-select').innerHTML = catalog.minibar.map(m => `<option value="${m.id}" ${m.stock<=0?'disabled':''}>${m.name} — ${m.price} lei (${m.stock} in stock)</option>`).join('');
     renderEditExtras();
 
@@ -1758,42 +1763,6 @@
     }
   }
 
-  // ---------------------------------------------------------------
-  // EXPENSES — data model
-  // TODO: replace with fetch('/api/expenses') once a backend exists.
-  // ---------------------------------------------------------------
-  let expenses = [
-    { id: 1, date: d(-12), category: "Alimente",  note: "Provizii mic dejun",   amount: 420 },
-    { id: 2, date: d(-8),  category: "Reparații", note: "Chiuvetă camera 3",    amount: 610 },
-    { id: 3, date: d(-3),  category: "Utilități", note: "Curent electric",      amount: 980 }
-  ];
-
-  function openAddExpense(){
-    document.getElementById('add-expense-modal').classList.add('open');
-    document.body.classList.add('modal-open');
-  }
-  function closeAddExpense(){
-    document.getElementById('add-expense-modal').classList.remove('open');
-    document.body.classList.remove('modal-open');
-  }
-  async function submitAddExpense(){
-    const category = document.getElementById('e-category').value;
-    const note = document.getElementById('e-note').value.trim();
-    const amount = parseFloat(document.getElementById('e-amount').value);
-    const date = document.getElementById('e-date').value || d(0);
-    if (!amount || amount <= 0) { alert('Te rugăm introdu o sumă validă.'); return; }
-
-    const newExpense = { id: Date.now(), date, category, note, amount };
-    expenses.push(newExpense);
-
-    closeAddExpense();
-    ['e-note','e-amount'].forEach(id => document.getElementById(id).value = '');
-    renderReports();
-
-    const saved = await dbAddExpense({ date, category, note, amount });
-    if (saved && saved.id) newExpense.id = saved.id;
-  }
-
   function money(n){ return n.toLocaleString('ro-RO') + ' lei'; }
 
   function barChart(container, data){
@@ -1846,14 +1815,8 @@
       .filter(r => parseLocalDate(r.checkin).getFullYear() === thisYear)
       .reduce((s, r) => s + (r.price || 0) + extrasTotal(r), 0);
 
-    const expenseMonth = expenses
-      .filter(e => { const dt = parseLocalDate(e.date); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; })
-      .reduce((s, e) => s + e.amount, 0);
-
     document.getElementById('rev-month').textContent = money(revenueMonth);
     document.getElementById('rev-year').textContent = money(revenueYear);
-    document.getElementById('exp-month').textContent = money(expenseMonth);
-    document.getElementById('net-month').textContent = money(revenueMonth - expenseMonth);
 
     // Reservations per month (mock trailing 6 months using check-in dates + a bit of history)
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1883,14 +1846,6 @@
       { label: 'Cazați',  value: checkedInCount, color: '#26503C' },
       { label: 'Anulate', value: cancelledCount, color: '#B4453A' }
     ]);
-
-    // Expenses table
-    const tbody = document.getElementById('expenses-table');
-    const sorted = [...expenses].sort((a,b) => parseLocalDate(b.date) - parseLocalDate(a.date));
-    tbody.innerHTML = sorted.map(e => `
-      <tr><td>${fmtDate(e.date)}</td><td>${e.category}</td><td>${e.note || '—'}</td><td>${money(e.amount)}</td></tr>
-    `).join('');
-    document.getElementById('expenses-empty').style.display = sorted.length ? 'none' : 'block';
   }
 
   // ---------------------------------------------------------------
@@ -1904,9 +1859,7 @@
 
     reservations = state.reservations;
     catalog.rooms = state.catalog.rooms;
-    catalog.services = state.catalog.services;
     catalog.minibar = state.catalog.minibar;
-    expenses = state.expenses;
     maintenanceBlocks = state.maintenance;
   }
 
