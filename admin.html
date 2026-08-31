@@ -742,14 +742,17 @@
 
   async function dbUpdateRoomPrice(roomType, price){
     if (!sb) return;
-    const { error } = await sb.from('room_prices').update({ price }).eq('room_type', roomType);
+    const { error } = await sb.from('room_prices').upsert({ room_type: roomType, price }, { onConflict: 'room_type' });
     if (error) console.error(error);
   }
 
-  async function dbUpdateCatalogPrice(type, id, price){
+  async function dbUpdateCatalogPrice(type, id, price, name, stock){
     if (!sb) return;
     const table = type === 'service' ? 'services' : 'minibar';
-    const { error } = await sb.from(table).update({ price }).eq('id', id);
+    const row = { id, price };
+    if (name !== undefined) row.name = name;
+    if (table === 'minibar' && stock !== undefined) row.stock = stock;
+    const { error } = await sb.from(table).upsert(row, { onConflict: 'id' });
     if (error) console.error(error);
   }
 
@@ -1550,7 +1553,7 @@
     const item = findCatalogItem(type, id);
     const price = parseFloat(value) || 0;
     if (item) item.price = price;
-    dbUpdateCatalogPrice(type, id, price);
+    dbUpdateCatalogPrice(type, id, price, item ? item.name : undefined, item ? item.stock : undefined);
     renderReservations(); // refreshes the Extras dropdowns' prices too
   }
 
