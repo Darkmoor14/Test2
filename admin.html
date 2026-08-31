@@ -322,7 +322,7 @@
         </div>
         <div class="res-grid" id="res-grid-active"></div>
         <div class="res-grid" id="res-grid-closed" style="display:none;"></div>
-        <p class="empty-note" id="res-empty" style="display:none;">Nicio rezervare în această lună încă.</p>
+        <p class="empty-note" id="res-empty" style="display:none;">Nicio rezervare aici.</p>
       </section>
 
       <!-- ROOMS & PRICING -->
@@ -1272,9 +1272,13 @@
 
   function renderReservations(){
     const inPeriod = r => { const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
-    const periodReservations = reservations.filter(inPeriod);
-    const active = periodReservations.filter(r => !isClosed(r));
-    const closed = periodReservations.filter(r => isClosed(r));
+    // "Active" always shows everything not yet checked out, regardless of the
+    // month/year picker — an upcoming reservation shouldn't vanish just
+    // because it's booked for a different month than the one currently selected.
+    const active = reservations.filter(r => !isClosed(r));
+    // "Closed" (past stays / cancellations) stays filterable by month, since
+    // browsing history by period is genuinely useful there.
+    const closed = reservations.filter(r => isClosed(r)).filter(inPeriod);
 
     document.getElementById('res-grid-active').innerHTML = active.map(r => cardHTML(r, false)).join('') || '';
     document.getElementById('res-grid-closed').innerHTML = closed.map(r => cardHTML(r, true)).join('') || '';
@@ -1287,7 +1291,7 @@
 
     // Overview: always ALL active reservations (not period-filtered) — only
     // cancelled or already-checked-out reservations disappear from here.
-    const allActive = reservations.filter(r => !isClosed(r));
+    const allActive = active;
     const checkedInList = allActive.filter(r => r.status === 'checkedin');
     const toArriveList  = allActive.filter(r => r.status !== 'checkedin');
     const paidList      = allActive.filter(r => r.status === 'paid' || r.status === 'checkedin');
