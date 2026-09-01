@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vila Silvia — Admin</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vila Silvia">
+<meta name="theme-color" content="#12261D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -232,6 +238,10 @@
       <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Camere &amp; tarife</button>
       <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Rapoarte</button>
     </nav>
+    <div class="sidebar-foot">
+      <button id="notif-btn" onclick="enableNotifications()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.18);color:#C7D1C6;border-radius:8px;padding:9px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">🔔 Activează notificări</button>
+      <p id="notif-status" style="font-size:11px;color:#7C8C7F;margin:8px 0 0;"></p>
+    </div>
   </aside>
 
   <div class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -445,6 +455,18 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="notif-prompt-modal">
+  <div class="modal" style="text-align:center;">
+    <div style="font-size:40px;margin-bottom:10px;">🔔</div>
+    <h2 style="margin-bottom:8px;">Activează notificările</h2>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 20px;">Primești un mesaj pe telefon cu o zi înainte ca un oaspete să sosească — nu mai trebuie să verifici manual în fiecare zi.</p>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn btn-outline" onclick="closeNotifPrompt(true)">Poate mai târziu</button>
+      <button class="btn btn-primary" onclick="acceptNotifPrompt()">Activează notificările</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="date-adjust-modal">
   <div class="modal">
     <h2 id="da-title">Prelungește sejurul</h2>
@@ -562,6 +584,9 @@
     const hideAddBooking = (id === 'reports' || id === 'rooms');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
 
+    const periodEl = document.getElementById('topbar-period');
+    if (periodEl) periodEl.style.display = (id === 'overview') ? 'none' : 'flex';
+
     document.querySelector('.content').scrollTop = 0;
     const backBtn = document.getElementById('back-to-top');
     if (backBtn) backBtn.classList.remove('show');
@@ -655,6 +680,96 @@
   const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
+
+  // ---------------------------------------------------------------
+  // PUSH NOTIFICATIONS — reminds you a day ahead of check-ins. See
+  // supabase/functions/push-notification for the piece that
+  // actually sends these (runs once a day on a schedule).
+  // ---------------------------------------------------------------
+  const VAPID_PUBLIC_KEY = 'BH22P2Pqkx2gnX9ZmJOFBpN6_Bgqvho6OrzmxOwaGHqaOKVCfmU1ych2MKYzarDA-cHRQYR1nKwR7fqe8-2ySG4';
+
+  function urlBase64ToUint8Array(base64String){
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+  }
+
+  async function dbSaveSubscription(sub){
+    if (!sb) return;
+    const json = sub.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth
+    }, { onConflict: 'endpoint' });
+    if (error) console.error(error);
+  }
+
+  async function enableNotifications(){
+    const statusEl = document.getElementById('notif-status');
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      statusEl.textContent = 'Notificările nu sunt suportate în acest browser.';
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        statusEl.textContent = 'Permisiune refuzată — activează notificările din setările browserului dacă te răzgândești.';
+        return;
+      }
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+      }
+      await dbSaveSubscription(sub);
+      statusEl.textContent = '✓ Notificări activate pe acest telefon.';
+      document.getElementById('notif-btn').textContent = '🔔 Notificări active';
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'A apărut o problemă la activarea notificărilor.';
+    }
+  }
+
+  // On load, reflect whether this device is already subscribed. Returns
+  // true/false so the caller can decide whether to show the install prompt.
+  async function checkNotificationStatus(){
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = reg && await reg.pushManager.getSubscription();
+      if (sub) {
+        document.getElementById('notif-btn').textContent = '🔔 Notificări active';
+        document.getElementById('notif-status').textContent = '✓ Activate pe acest telefon.';
+        return true;
+      }
+      return false;
+    } catch (err) {
+      return false; // not critical — button just shows its default state
+    }
+  }
+
+  // True when the app is running installed (added to home screen), rather
+  // than as an ordinary browser tab — iOS/Android both flag this differently.
+  function isStandaloneApp(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  function openNotifPrompt(){
+    document.getElementById('notif-prompt-modal').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeNotifPrompt(remember){
+    document.getElementById('notif-prompt-modal').classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if (remember) localStorage.setItem('vs_notif_prompt_dismissed', '1');
+  }
+  async function acceptNotifPrompt(){
+    await enableNotifications(); // the tap itself is what satisfies iOS's gesture requirement
+    closeNotifPrompt(true);
+  }
 
   async function dbLoadState(){
     if (!sb) return null;
@@ -2011,6 +2126,13 @@
     const validStart = document.getElementById(startSection) ? startSection : 'overview';
     history.replaceState({ section: validStart }, '', '#' + validStart);
     if (validStart !== 'overview') showSection(validStart, true);
+    else { const periodEl = document.getElementById('topbar-period'); if (periodEl) periodEl.style.display = 'none'; }
+
+    const alreadySubscribed = await checkNotificationStatus();
+    const alreadyDismissed = localStorage.getItem('vs_notif_prompt_dismissed') === '1';
+    if (isStandaloneApp() && !alreadySubscribed && !alreadyDismissed) {
+      openNotifPrompt();
+    }
   })();
 </script>
 
