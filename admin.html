@@ -334,6 +334,8 @@
             <div class="price"><input type="number" id="room-price-Standard" value="340" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Standard', this.value)"> <span>lei / noapte, bază</span></div>
             <div class="field-row">Tarif weekend <input type="number" value="390"></div>
             <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
+            <div class="field-row">Ocupare de bază (persoane) <input type="number" min="1" value="2" style="width:60px;" onchange="updateRoomOccupancy('Standard', this.value)"></div>
+            <div class="field-row">Preț persoană suplimentară / noapte <input type="number" min="0" value="50" style="width:60px;" onchange="updateExtraPersonPrice('Standard', this.value)"></div>
           </div>
           <div class="room-card">
             <h3>Standard fără balcon</h3>
@@ -341,6 +343,8 @@
             <div class="price"><input type="number" id="room-price-StandardNoBalcony" value="300" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('StandardNoBalcony', this.value)"> <span>lei / noapte, bază</span></div>
             <div class="field-row">Tarif weekend <input type="number" value="340"></div>
             <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
+            <div class="field-row">Ocupare de bază (persoane) <input type="number" min="1" value="2" style="width:60px;" onchange="updateRoomOccupancy('StandardNoBalcony', this.value)"></div>
+            <div class="field-row">Preț persoană suplimentară / noapte <input type="number" min="0" value="50" style="width:60px;" onchange="updateExtraPersonPrice('StandardNoBalcony', this.value)"></div>
           </div>
           <div class="room-card">
             <h3>Apartament</h3>
@@ -348,9 +352,11 @@
             <div class="price"><input type="number" id="room-price-Apartament" value="620" style="width:80px;font-family:'Fraunces',serif;font-size:22px;font-weight:600;border:none;border-bottom:1px dashed var(--line);background:transparent;padding:0;" onchange="updateRoomPrice('Apartament', this.value)"> <span>lei / noapte, bază</span></div>
             <div class="field-row">Tarif weekend <input type="number" value="700"></div>
             <div class="field-row">Sejur minim (nopți) <input type="number" value="2"></div>
+            <div class="field-row">Ocupare de bază (persoane) <input type="number" min="1" value="4" style="width:60px;" onchange="updateRoomOccupancy('Apartament', this.value)"></div>
+            <div class="field-row">Preț persoană suplimentară / noapte <input type="number" min="0" value="50" style="width:60px;" onchange="updateExtraPersonPrice('Apartament', this.value)"></div>
           </div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">Acest tarif de bază este folosit și pentru a calcula automat prețul unui sejur prelungit.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:8px;">Acest tarif de bază este folosit și pentru a calcula automat prețul unui sejur prelungit. Peste ocuparea de bază, fiecare persoană suplimentară este taxată automat per noapte.</p>
         <div style="margin-top:18px;margin-bottom:28px;">
           <button class="btn btn-primary">Salvează modificările</button>
         </div>
@@ -496,6 +502,8 @@
     <input type="date" id="e2-checkin">
     <label>Check-out</label>
     <input type="date" id="e2-checkout">
+    <label>Număr de persoane</label>
+    <input type="number" id="e2-guests" min="1">
     <label>Sursă</label>
     <select id="e2-source">
       <option value="booking">Booking.com</option>
@@ -672,11 +680,17 @@
       const reservationsOut = (resv.data || []).map(r => ({
         id: r.id, guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.room_number,
         source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
-        price: r.price, groupId: r.group_id, extras: extrasByRes[r.id] || []
+        price: r.price, groupId: r.group_id, guests: r.guests, extras: extrasByRes[r.id] || []
       }));
 
       const roomsOut = {};
-      (rooms.data || []).forEach(rp => { roomsOut[rp.room_type] = { price: rp.price }; });
+      (rooms.data || []).forEach(rp => {
+        roomsOut[rp.room_type] = {
+          price: rp.price,
+          baseOccupancy: rp.base_occupancy != null ? rp.base_occupancy : 2,
+          extraPersonPrice: rp.extra_person_price != null ? rp.extra_person_price : 0
+        };
+      });
 
       return {
         reservations: reservationsOut,
@@ -695,7 +709,7 @@
     const { data, error } = await sb.from('reservations').insert({
       guest: r.guest, phone: r.phone, room: r.room, room_number: r.roomNumber,
       source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
-      price: r.price, group_id: r.groupId
+      price: r.price, group_id: r.groupId, guests: r.guests
     }).select().single();
     if (error) { console.error(error); return null; }
     return { id: data.id };
@@ -740,9 +754,13 @@
     }
   }
 
-  async function dbUpdateRoomPrice(roomType, price){
+  async function dbSyncRoomPricing(roomType){
     if (!sb) return;
-    const { error } = await sb.from('room_prices').upsert({ room_type: roomType, price }, { onConflict: 'room_type' });
+    const r = catalog.rooms[roomType];
+    if (!r) return;
+    const { error } = await sb.from('room_prices').upsert({
+      room_type: roomType, price: r.price, base_occupancy: r.baseOccupancy, extra_person_price: r.extraPersonPrice
+    }, { onConflict: 'room_type' });
     if (error) console.error(error);
   }
 
@@ -798,9 +816,9 @@
   // ---------------------------------------------------------------
   let catalog = {
     rooms: {
-      Standard:           { price: 340 },
-      StandardNoBalcony:  { price: 300 },
-      Apartament:         { price: 620 }
+      Standard:           { price: 340, baseOccupancy: 2, extraPersonPrice: 50 },
+      StandardNoBalcony:  { price: 300, baseOccupancy: 2, extraPersonPrice: 50 },
+      Apartament:         { price: 620, baseOccupancy: 4, extraPersonPrice: 50 }
     },
     services: [
       { id: 'massage', name: 'Masaj', price: 120 },
@@ -817,15 +835,85 @@
     return catalog[type === 'service' ? 'services' : 'minibar'].find(x => x.id === id);
   }
 
+  // Resolves which catalog.rooms entry actually applies — room 5 (Standard,
+  // no balcony) has its own pricing row even though it's stored as plain
+  // 'Standard' on the reservation itself.
+  function roomPricingKey(roomType, roomNumber){
+    return (roomType === 'Standard' && STANDARD_NO_BALCONY_ROOMS.includes(roomNumber)) ? 'StandardNoBalcony' : roomType;
+  }
+
   function roomRate(roomType, roomNumber){
-    const key = (roomType === 'Standard' && STANDARD_NO_BALCONY_ROOMS.includes(roomNumber)) ? 'StandardNoBalcony' : roomType;
+    const key = roomPricingKey(roomType, roomNumber);
     return (catalog.rooms[key] && catalog.rooms[key].price) || 0;
+  }
+
+  function roomOccupancyInfo(roomType, roomNumber){
+    const key = roomPricingKey(roomType, roomNumber);
+    return catalog.rooms[key] || { baseOccupancy: 2, extraPersonPrice: 0 };
+  }
+
+  function nightsBetween(checkin, checkout){
+    return Math.max(0, Math.round((parseLocalDate(checkout) - parseLocalDate(checkin)) / 86400000));
+  }
+
+  // Works out the "extra person" line for a reservation, based on its
+  // guest count vs. the room type's base occupancy — charged per night.
+  // Returns null if occupancy is within the base (no extra charge).
+  function computeExtraPersonExtra(r){
+    const info = roomOccupancyInfo(r.room, r.roomNumber);
+    const extraPeople = Math.max(0, (r.guests || info.baseOccupancy) - info.baseOccupancy);
+    if (extraPeople <= 0) return null;
+    const nights = nightsBetween(r.checkin, r.checkout);
+    const perPersonTotal = info.extraPersonPrice * nights;
+    return {
+      catalogId: null, type: 'extraperson',
+      name: `Persoană suplimentară (${nights} ${nights === 1 ? 'noapte' : 'nopți'} × ${info.extraPersonPrice} lei)`,
+      price: perPersonTotal, qty: extraPeople
+    };
+  }
+
+  // Removes any existing auto-computed "extra person" line from a
+  // reservation and replaces it with a freshly recalculated one (or
+  // removes it entirely if occupancy no longer exceeds the base) —
+  // called whenever guest count, dates, or room assignment changes.
+  async function syncExtraPersonCharge(r){
+    r.extras = r.extras || [];
+    const existingIdx = r.extras.findIndex(e => e.type === 'extraperson');
+    const existing = existingIdx >= 0 ? r.extras[existingIdx] : null;
+    const fresh = computeExtraPersonExtra(r);
+
+    if (existing && fresh && existing.price === fresh.price && existing.qty === fresh.qty) return; // unchanged
+
+    if (existing) {
+      r.extras.splice(existingIdx, 1);
+      if (existing.id) dbRemoveExtra(existing.id, null, 'extraperson', 0);
+    }
+    if (fresh) {
+      r.extras.push(fresh);
+      if (r.id) {
+        const saved = await dbAddExtra(r.id, fresh);
+        if (saved && saved.id) fresh.id = saved.id;
+      }
+    }
   }
 
   function updateRoomPrice(roomType, value){
     const price = parseFloat(value) || 0;
     if (catalog.rooms[roomType]) catalog.rooms[roomType].price = price;
-    dbUpdateRoomPrice(roomType, price);
+    dbSyncRoomPricing(roomType);
+  }
+
+  function updateRoomOccupancy(roomType, value){
+    const n = parseInt(value, 10) || 1;
+    if (catalog.rooms[roomType]) catalog.rooms[roomType].baseOccupancy = n;
+    dbSyncRoomPricing(roomType);
+    renderReservations(); // re-check extra-person charges against the new base occupancy
+  }
+
+  function updateExtraPersonPrice(roomType, value){
+    const price = parseFloat(value) || 0;
+    if (catalog.rooms[roomType]) catalog.rooms[roomType].extraPersonPrice = price;
+    dbSyncRoomPricing(roomType);
   }
 
   function extrasTotal(r){
@@ -992,7 +1080,7 @@
     dateAdjustId = null;
   }
 
-  function submitDateAdjust(){
+  async function submitDateAdjust(){
     const r = reservations.find(x => x.id === dateAdjustId);
     const input = document.getElementById('da-date').value;
     if (!r || !input) { alert('Te rugăm alege o dată.'); return; }
@@ -1025,6 +1113,7 @@
 
       dbUpdateReservation(r.id, { checkout: r.checkout });
       dbAddExtra(r.id, extensionExtra).then(saved => { if (saved && saved.id) extensionExtra.id = saved.id; });
+      await syncExtraPersonCharge(r); // extra-person charge is per night, so it needs recalculating too
 
       closeDateAdjust();
       renderReservations();
@@ -1049,6 +1138,7 @@
 
       dbUpdateReservation(r.id, { checkout: r.checkout });
       dbAddExtra(r.id, shortenedExtra).then(saved => { if (saved && saved.id) shortenedExtra.id = saved.id; });
+      await syncExtraPersonCharge(r); // fewer nights means a smaller (or zero) extra-person charge
 
       closeDateAdjust();
       renderReservations();
@@ -1221,6 +1311,7 @@
         <div class="res-guest">${r.guest}${linkedBadge}</div>
         <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
         <div class="res-line">📞 ${r.phone}</div>
+        <div class="res-line">👤 ${r.guests || '—'} ${r.guests === 1 ? 'persoană' : 'persoane'}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
         ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
         ${extrasLine}
@@ -1362,6 +1453,7 @@
         <option value="Apartament">Apartament</option>
       </select>
       <select class="f-room-number" onchange="this.dataset.manual='true'"></select>
+      <input type="number" class="f-room-guests" min="1" value="2" title="Număr de persoane" style="width:56px;">
       <button type="button" onclick="removeRoomLine(this)" title="Elimină această cameră">✕</button>
     </div>`;
   }
@@ -1378,7 +1470,11 @@
   }
 
   function handleRoomTypeChange(sel){
-    sel.closest('.room-line').querySelector('.f-room-number').dataset.manual = ''; // room type changed — old pick no longer applies
+    const line = sel.closest('.room-line');
+    line.querySelector('.f-room-number').dataset.manual = ''; // room type changed — old pick no longer applies
+    const key = sel.value === 'StandardNoBalcony' ? 'StandardNoBalcony' : sel.value;
+    const occ = (catalog.rooms[key] && catalog.rooms[key].baseOccupancy) || 2;
+    line.querySelector('.f-room-guests').value = occ; // default to that room type's base occupancy
     refreshRoomLineSuggestions();
   }
 
@@ -1482,7 +1578,8 @@
     const lines = Array.from(document.querySelectorAll('#f-room-lines .room-line'));
     const picks = lines.map(line => ({
       room: normalizeRoomType(line.querySelector('.f-room-type').value),
-      roomNumber: line.querySelector('.f-room-number').value ? parseInt(line.querySelector('.f-room-number').value, 10) : null
+      roomNumber: line.querySelector('.f-room-number').value ? parseInt(line.querySelector('.f-room-number').value, 10) : null,
+      guests: parseInt(line.querySelector('.f-room-guests').value, 10) || 1
     }));
 
     const seen = new Set();
@@ -1508,7 +1605,7 @@
     }
 
     const newlyCreated = picks.map((p, i) => {
-      const row = { id: Date.now() + i, guest, phone, room: p.room, roomNumber: p.roomNumber, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] };
+      const row = { id: Date.now() + i, guest, phone, room: p.room, roomNumber: p.roomNumber, guests: p.guests, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] };
       reservations.push(row);
       return row;
     });
@@ -1528,7 +1625,9 @@
     for (const r of newlyCreated) {
       const saved = await dbCreateReservation(r);
       if (saved && saved.id) r.id = saved.id;
+      await syncExtraPersonCharge(r);
     }
+    renderReservations();
   }
 
   function linkedReservations(r){
@@ -1673,6 +1772,7 @@
     populateRoomNumberOptions(r.room, r.roomNumber);
     document.getElementById('e2-checkin').value = r.checkin;
     document.getElementById('e2-checkout').value = r.checkout;
+    document.getElementById('e2-guests').value = r.guests || roomOccupancyInfo(r.room, r.roomNumber).baseOccupancy;
     document.getElementById('e2-source').value = r.source;
     document.getElementById('e2-status').value = r.status;
     document.getElementById('e2-price').value = r.price || 0;
@@ -1749,7 +1849,7 @@
     renderReservations(); // in case extras changed stock/prices while editing
   }
 
-  function submitEditReservation(){
+  async function submitEditReservation(){
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
 
@@ -1769,14 +1869,16 @@
     r.roomNumber = newRoomNumber;
     r.checkin = newCheckin;
     r.checkout = newCheckout;
+    r.guests = parseInt(document.getElementById('e2-guests').value, 10) || roomOccupancyInfo(r.room, r.roomNumber).baseOccupancy;
     r.source = document.getElementById('e2-source').value;
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
 
     dbUpdateReservation(r.id, {
       guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.roomNumber,
-      source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout, price: r.price
+      source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout, price: r.price, guests: r.guests
     });
+    await syncExtraPersonCharge(r); // recompute in case guests, dates, or room changed
 
     closeEditReservation();
     renderReservations(); // cascades to overview stats, Gantt, and reports automatically
