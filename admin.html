@@ -173,16 +173,17 @@
 
   /* Gantt calendar */
   .period-select select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
-  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;max-height:65vh;overflow-y:auto;}
-  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);position:sticky;top:0;}
+  .gantt-panel-scroll{max-height:65vh;overflow:auto;}
+  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;width:max-content;min-width:100%;}
+  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);}
   .glabel{height:32px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;position:sticky;top:0;z-index:3;background:#FAF8F2;}
-  .gantt-scroll{overflow-x:auto;flex:1;min-width:0;position:relative;}
+  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;background:#FAF8F2;}
+  .gantt-scroll{flex:1;min-width:0;position:relative;}
   .gantt-row{display:grid;position:relative;}
   .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
   .gantt-daycell.odd-day{background:#EFECE2;}
   .gantt-daycell.weekend-day{background:#EAE6F5;}
-  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;}
+  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
   .gantt-daycell.head.weekend-day{background:#E4DFF2;}
   .gantt-daycell.month-start{border-left:2px solid var(--amber);}
   .gantt-daycell.head.month-start{color:var(--amber-dark);font-weight:700;}
@@ -318,7 +319,7 @@
           </div>
         </div>
         <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;" id="gantt-range-label"></div>
-        <div class="panel" style="padding:0;">
+        <div class="panel gantt-panel-scroll" style="padding:0;">
           <div id="gantt"></div>
         </div>
         <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Derulare continuă — un sejur nu este niciodată întrerupt la limita dintre luni. Barele sunt colorate după sursă și etichetate cu prenumele oaspetelui.</p>
@@ -520,7 +521,8 @@
     <input type="text" id="e2-phone">
     <label>Tip cameră</label>
     <select id="e2-roomtype" onchange="populateRoomNumberOptions(this.value, null)">
-      <option value="Standard">Standard</option>
+      <option value="Standard">Standard cu balcon</option>
+      <option value="StandardNoBalcony">Standard fără balcon (nr. 5)</option>
       <option value="Apartament">Apartament</option>
     </select>
     <label>Număr cameră</label>
@@ -1924,7 +1926,7 @@
   let editingId = null;
 
   function populateRoomNumberOptions(type, current){
-    const pool = type === 'Apartament' ? APARTMENT_ROOMS : STANDARD_ROOMS;
+    const pool = poolForFormType(type);
     const sel = document.getElementById('e2-roomnumber');
     const keep = current !== null ? current : parseInt(sel.value, 10);
     sel.innerHTML = pool.map(n => `<option value="${n}" ${n === keep ? 'selected' : ''}>${n}</option>`).join('');
@@ -1936,8 +1938,9 @@
     editingId = id;
     document.getElementById('e2-guest').value = r.guest;
     document.getElementById('e2-phone').value = r.phone;
-    document.getElementById('e2-roomtype').value = r.room;
-    populateRoomNumberOptions(r.room, r.roomNumber);
+    const formType = roomPricingKey(r.room, r.roomNumber); // resolves to 'StandardNoBalcony' when this is room 5
+    document.getElementById('e2-roomtype').value = formType;
+    populateRoomNumberOptions(formType, r.roomNumber);
     document.getElementById('e2-checkin').value = r.checkin;
     document.getElementById('e2-checkout').value = r.checkout;
     document.getElementById('e2-guests').value = r.guests || roomOccupancyInfo(r.room, r.roomNumber).baseOccupancy;
@@ -2033,7 +2036,7 @@
 
     r.guest = document.getElementById('e2-guest').value.trim();
     r.phone = document.getElementById('e2-phone').value.trim();
-    r.room = document.getElementById('e2-roomtype').value;
+    r.room = normalizeRoomType(document.getElementById('e2-roomtype').value);
     r.roomNumber = newRoomNumber;
     r.checkin = newCheckin;
     r.checkout = newCheckout;
