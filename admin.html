@@ -173,18 +173,23 @@
 
   /* Gantt calendar */
   .period-select select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
-  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
-  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);}
+  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;max-height:65vh;overflow-y:auto;}
+  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);position:sticky;top:0;}
   .glabel{height:32px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;}
-  .gantt-scroll{overflow-x:auto;flex:1;min-width:0;}
+  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;position:sticky;top:0;z-index:3;background:#FAF8F2;}
+  .gantt-scroll{overflow-x:auto;flex:1;min-width:0;position:relative;}
   .gantt-row{display:grid;position:relative;}
   .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
-  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
+  .gantt-daycell.odd-day{background:#EFECE2;}
+  .gantt-daycell.weekend-day{background:#EAE6F5;}
+  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2;}
+  .gantt-daycell.head.weekend-day{background:#E4DFF2;}
   .gantt-daycell.month-start{border-left:2px solid var(--amber);}
   .gantt-daycell.head.month-start{color:var(--amber-dark);font-weight:700;}
-  .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;}
+  .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;position:relative;z-index:1;}
   .gantt-bar.maintenance{background:repeating-linear-gradient(45deg, #8a8f89, #8a8f89 6px, #767b75 6px, #767b75 12px);justify-content:center;}
+  .gantt-now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:4;pointer-events:none;}
+  .gantt-now-line::before{content:'';position:absolute;top:0;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);}
   .gantt-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .gantt-nav select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
 
@@ -1322,6 +1327,42 @@
     renderGantt();
   }
 
+  function dayClasses(dt, extra){
+    const classes = [];
+    if (extra) classes.push(extra);
+    if (dt.getDate() === 1) classes.push('month-start');
+    const dow = dt.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dow === 0 || dow === 6) classes.push('weekend-day');
+    else if (dt.getDate() % 2 === 1) classes.push('odd-day');
+    return classes.join(' ');
+  }
+
+  // Draws (or repositions) the vertical "now" line — points at today's
+  // column, offset within it by the current hour/minute. Cheap enough to
+  // call on its own every minute without re-rendering the whole calendar.
+  function renderNowLine(){
+    const scrollEl = document.querySelector('#gantt .gantt-scroll');
+    if (!scrollEl) return;
+    const old = scrollEl.querySelector('.gantt-now-line');
+    if (old) old.remove();
+
+    const now = new Date();
+    const dayIdx = dayOffset(localISODate(now), ganttStart);
+    const days = ganttWindowDays();
+    if (dayIdx < 0 || dayIdx >= days) return; // "today" isn't in the visible window
+
+    const sampleCell = scrollEl.querySelector('.gantt-daycell');
+    if (!sampleCell) return;
+    const colWidth = sampleCell.getBoundingClientRect().width;
+    const fraction = dayIdx + (now.getHours() * 60 + now.getMinutes()) / 1440;
+
+    const line = document.createElement('div');
+    line.className = 'gantt-now-line';
+    line.style.left = (fraction * colWidth) + 'px';
+    line.title = 'Acum: ' + now.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+    scrollEl.appendChild(line);
+  }
+
   function renderGantt(){
     const el = document.getElementById('gantt');
     if (!el) return;
@@ -1348,7 +1389,7 @@
       const label = isFirstOfMonth
         ? `${dt.toLocaleDateString('ro-RO',{month:'short'})} ${dt.getDate()}`
         : dt.getDate();
-      return `<div class="gantt-daycell head ${isFirstOfMonth ? 'month-start' : ''}" style="grid-column:${i+1};grid-row:1;">${label}</div>`;
+      return `<div class="gantt-daycell ${dayClasses(dt, 'head')}" style="grid-column:${i+1};grid-row:1;">${label}</div>`;
     }).join('');
 
     let scrollHTML = `<div class="gantt-row" style="grid-template-columns:${colTemplate};">${dayHeaderHTML}</div>`;
@@ -1356,7 +1397,7 @@
     rooms.forEach(room => {
       const cells = Array.from({length:days}, (_,i) => {
         const dt = addDays(first, i);
-        return `<div class="gantt-daycell ${dt.getDate()===1?'month-start':''}" style="grid-column:${i+1};grid-row:1;"></div>`;
+        return `<div class="gantt-daycell ${dayClasses(dt)}" style="grid-column:${i+1};grid-row:1;"></div>`;
       }).join('');
       const roomReservations = reservations.filter(r => r.roomNumber === room.num && r.status !== 'cancelled');
       const bars = roomReservations.map(r => {
@@ -1383,6 +1424,8 @@
       <div class="gantt-labels">${labelsHTML}</div>
       <div class="gantt-scroll">${scrollHTML}</div>
     </div>`;
+
+    renderNowLine();
   }
 
   function cardHTML(r, closed){
@@ -1494,8 +1537,9 @@
     const inPeriod = r => { if (isAllMonths()) return true; const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
     // Both tabs on the Reservations page respect the month/year picker —
     // pick August, see August's reservations, whichever tab you're on.
-    const active = reservations.filter(r => !isClosed(r)).filter(inPeriod);
-    const closed = reservations.filter(r => isClosed(r)).filter(inPeriod);
+    const byCheckin = (a, b) => parseLocalDate(a.checkin) - parseLocalDate(b.checkin);
+    const active = reservations.filter(r => !isClosed(r)).filter(inPeriod).sort(byCheckin);
+    const closed = reservations.filter(r => isClosed(r)).filter(inPeriod).sort(byCheckin);
 
     document.getElementById('res-grid-active').innerHTML = active.map(r => cardHTML(r, false)).join('') || '';
     document.getElementById('res-grid-closed').innerHTML = closed.map(r => cardHTML(r, true)).join('') || '';
@@ -1509,7 +1553,7 @@
     // Overview stays independent of the month/year picker — it always shows
     // ALL active reservations regardless of period, so nothing upcoming ever
     // silently disappears just because a different month happens to be selected.
-    const allActive = reservations.filter(r => !isClosed(r));
+    const allActive = reservations.filter(r => !isClosed(r)).sort(byCheckin);
     const checkedInList = allActive.filter(r => r.status === 'checkedin');
     const toArriveList  = allActive.filter(r => r.status !== 'checkedin');
     const paidList      = allActive.filter(r => r.status === 'paid' || r.status === 'checkedin');
@@ -2146,6 +2190,8 @@
     if (isStandaloneApp() && !alreadySubscribed && !alreadyDismissed) {
       openNotifPrompt();
     }
+
+    setInterval(renderNowLine, 60000); // keeps the "now" line creeping forward through the day
   })();
 </script>
 
