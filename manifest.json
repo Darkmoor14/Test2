@@ -1,0 +1,11 @@
+{
+  "name": "Vila Silvia — Admin",
+  "short_name": "Vila Silvia",
+  "start_url": "./admin.html",
+  "display": "standalone",
+  "background_color": "#F5F1E7",
+  "theme_color": "#12261D",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
