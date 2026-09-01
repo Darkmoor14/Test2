@@ -625,7 +625,10 @@
   });
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => showSection(btn.dataset.section));
+    btn.addEventListener('click', () => {
+      showSection(btn.dataset.section);
+      refreshFromServer(); // pulls anything changed elsewhere (another device, another tab) since this page loaded
+    });
   });
 
   // ---------------------------------------------------------------
@@ -1231,7 +1234,7 @@
       await syncExtraPersonCharge(r); // extra-person charge is per night, so it needs recalculating too
 
       closeDateAdjust();
-      renderReservations();
+      refreshFromServer();
 
       const owesReminder = (r.status === 'paid' || r.status === 'checkedin')
         ? ` Această rezervare este deja marcată „${statusLabel[r.status]}" — ${nights} noapte(nopți) suplimentară(e) nu sunt marcate automat ca plătite, așa că asigură-te că încasezi ${extraCharge} lei de la oaspete.`
@@ -1256,7 +1259,7 @@
       await syncExtraPersonCharge(r); // fewer nights means a smaller (or zero) extra-person charge
 
       closeDateAdjust();
-      renderReservations();
+      refreshFromServer();
       alert(`Check-out mutat la ${fmtDate(input)}. Nu s-a aplicat nicio reducere de preț — sejurul original rămâne facturat integral. Camera ${r.roomNumber} este acum liberă din nou începând cu ${fmtDate(input)}.`);
     }
   }
@@ -1450,9 +1453,10 @@
     const years = [selPeriod.year - 1, selPeriod.year, selPeriod.year + 1];
     return `
       <select id="${prefix}-month" onchange="setPeriod('month', this.value)">
+        <option value="all" ${selPeriod.month==='all'?'selected':''}>Toate lunile</option>
         ${MONTH_NAMES.map((m,i) => `<option value="${i}" ${i===selPeriod.month?'selected':''}>${m}</option>`).join('')}
       </select>
-      <select id="${prefix}-year" onchange="setPeriod('year', this.value)">
+      <select id="${prefix}-year" onchange="setPeriod('year', this.value)" ${selPeriod.month==='all'?'disabled':''}>
         ${years.map(y => `<option value="${y}" ${y===selPeriod.year?'selected':''}>${y}</option>`).join('')}
       </select>`;
   }
@@ -1462,11 +1466,18 @@
     if (el) el.innerHTML = buildPeriodSelectHTML('topbar-period');
   }
 
+  // True when "Toate lunile" is selected — period filters should show
+  // everything, in every section, rather than restricting to one month.
+  function isAllMonths(){
+    return selPeriod.month === 'all';
+  }
+
   function setPeriod(kind, value){
-    selPeriod[kind] = parseInt(value, 10);
+    selPeriod[kind] = (kind === 'month' && value === 'all') ? 'all' : parseInt(value, 10);
     renderPeriodSelectors();
-    // If we're looking at the calendar, jump its rolling window to that month too.
-    if (document.getElementById('calendar').classList.contains('active')) {
+    // If we're looking at the calendar, jump its rolling window to that month too
+    // (only meaningful for a specific month, not "all").
+    if (!isAllMonths() && document.getElementById('calendar').classList.contains('active')) {
       ganttStart = startOfWeek(new Date(selPeriod.year, selPeriod.month, 1));
     }
     renderReservations();
@@ -1480,7 +1491,7 @@
   }
 
   function renderReservations(){
-    const inPeriod = r => { const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
+    const inPeriod = r => { if (isAllMonths()) return true; const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
     // Both tabs on the Reservations page respect the month/year picker —
     // pick August, see August's reservations, whichever tab you're on.
     const active = reservations.filter(r => !isClosed(r)).filter(inPeriod);
@@ -1740,7 +1751,7 @@
       if (saved && saved.id) r.id = saved.id;
       await syncExtraPersonCharge(r);
     }
-    renderReservations();
+    await refreshFromServer();
   }
 
   function linkedReservations(r){
@@ -1987,17 +1998,17 @@
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
 
-    dbUpdateReservation(r.id, {
+    await dbUpdateReservation(r.id, {
       guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.roomNumber,
       source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout, price: r.price, guests: r.guests
     });
     await syncExtraPersonCharge(r); // recompute in case guests, dates, or room changed
 
     closeEditReservation();
-    renderReservations(); // cascades to overview stats, Gantt, and reports automatically
+    await refreshFromServer();
   }
 
-  function deleteReservationConfirm(){
+  async function deleteReservationConfirm(){
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
     if (confirm(`Ștergi rezervarea pentru ${r.guest}? Această acțiune nu poate fi anulată.`)) {
@@ -2008,9 +2019,9 @@
         }
       });
       reservations = reservations.filter(x => x.id !== editingId);
-      dbDeleteReservation(editingId);
+      await dbDeleteReservation(editingId);
       closeEditReservation();
-      renderReservations();
+      await refreshFromServer();
     }
   }
 
@@ -2053,7 +2064,9 @@
     const revEl = document.getElementById('rev-month');
     if (!revEl) return; // reports section not built yet on first call
 
-    const thisMonth = selPeriod.month, thisYear = selPeriod.year;
+    const now = new Date();
+    const thisMonth = isAllMonths() ? now.getMonth() : selPeriod.month;
+    const thisYear = selPeriod.year;
     const countedStatuses = ['paid', 'checkedin'];
 
     const revenueMonth = reservations
@@ -2104,7 +2117,7 @@
   // none is configured (API_BASE is blank) or it's unreachable, the
   // dashboard falls back to the built-in demo data defined above.
   // ---------------------------------------------------------------
-  async function loadInitialState(){
+  async function refreshFromServer(){
     const state = await dbLoadState();
     if (!state) return; // no backend configured/reachable — keep demo data
 
@@ -2112,13 +2125,13 @@
     catalog.rooms = state.catalog.rooms;
     catalog.minibar = state.catalog.minibar;
     maintenanceBlocks = state.maintenance;
+    renderReservations(); // cascades to Gantt, Reports, Pricing tables, Inventory, Maintenance table
   }
 
   (async () => {
-    await loadInitialState();
+    await refreshFromServer();
 
     renderPeriodSelectors();
-    renderReservations();
 
     // Set up the initial history entry, and honor a section in the URL hash
     // (e.g. reloading on #reports keeps you on Reports).
