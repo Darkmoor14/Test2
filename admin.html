@@ -597,21 +597,12 @@
 
     toggleSidebar(false); // close the mobile sidebar after navigating
 
-    // If we have a saved calendar position waiting to be restored, do it
-    // now that the Calendar tab is actually visible — measuring column
-    // widths on a hidden (display:none) element would just give 0.
-    if (id === 'calendar' && pendingGanttRestoreDate) {
-      const dateToRestore = pendingGanttRestoreDate;
-      pendingGanttRestoreDate = null;
-      requestAnimationFrame(() => {
-        const scrollEl = document.querySelector('#gantt .gantt-scroll');
-        const sample = scrollEl && scrollEl.querySelector('.gantt-daycell');
-        if (scrollEl && sample) {
-          const colW = sample.getBoundingClientRect().width;
-          const dayIdx = dayOffset(dateToRestore, ganttRangeStart);
-          scrollEl.scrollLeft = Math.max(0, (dayIdx - 1) * colW);
-        }
-      });
+    // Every time Calendar becomes visible — not just on first load — put
+    // the scroll position and "now" line back where they belong. Both
+    // need real layout to measure correctly, so this waits two frames
+    // for display:block to actually take effect first.
+    if (id === 'calendar') {
+      requestAnimationFrame(() => requestAnimationFrame(restoreGanttPosition));
     }
 
     // Only push a new history entry when navigating forward (not when
@@ -1331,7 +1322,6 @@
   const GANTT_CHUNK_DAYS = 90;
   let ganttRangeStart = addDays(today0(), -60);
   let ganttRangeEnd = addDays(today0(), 180);
-  let pendingGanttRestoreDate = null; // set at load if there's a saved position to restore once Calendar is visible
 
   function ganttTotalDays(){
     return Math.round((ganttRangeEnd - ganttRangeStart) / 86400000) + 1;
@@ -1369,6 +1359,33 @@
       const colW = sample.getBoundingClientRect().width;
       const dayIdx = dayOffset(dateStr, ganttRangeStart);
       scrollEl.scrollLeft = Math.max(0, (dayIdx - 1) * colW);
+    });
+  }
+
+  // Called every time the Calendar tab actually becomes visible (not just
+  // once at load) — restores wherever you last scrolled to, and recomputes
+  // the "now" line's position. Both need real layout to measure, which is
+  // exactly what's NOT available while the tab is hidden — that mismatch
+  // was the cause of the scroll resetting and the line going missing.
+  function restoreGanttPosition(){
+    const savedDate = localStorage.getItem('vs_gantt_last_date');
+    if (!savedDate) { renderNowLine(); return; }
+
+    const target = parseLocalDate(savedDate);
+    let extended = false;
+    while (target < ganttRangeStart && extendGanttBackward()) { extended = true; }
+    while (target > ganttRangeEnd && extendGanttForward()) { extended = true; }
+    if (extended) renderGantt();
+
+    requestAnimationFrame(() => {
+      const scrollEl = document.querySelector('#gantt .gantt-scroll');
+      const sample = scrollEl && scrollEl.querySelector('.gantt-daycell');
+      if (scrollEl && sample) {
+        const colW = sample.getBoundingClientRect().width;
+        const dayIdx = dayOffset(savedDate, ganttRangeStart);
+        scrollEl.scrollLeft = Math.max(0, (dayIdx - 1) * colW);
+      }
+      renderNowLine(); // now that we're actually visible, this measures correctly
     });
   }
 
@@ -2272,22 +2289,17 @@
     catalog.minibar = state.catalog.minibar;
     maintenanceBlocks = state.maintenance;
     renderReservations(); // cascades to Gantt, Reports, Pricing tables, Inventory, Maintenance table
+
+    // This can finish after (or before) the tab-switch restore below —
+    // re-asserting the position here, as the actual last thing to run,
+    // removes that race instead of hoping the timing works out.
+    if (document.getElementById('calendar').classList.contains('active')) {
+      requestAnimationFrame(() => requestAnimationFrame(restoreGanttPosition));
+    }
   }
 
   (async () => {
     await refreshFromServer();
-
-    const savedGanttDate = localStorage.getItem('vs_gantt_last_date');
-    if (savedGanttDate) {
-      // Just make sure the saved date is within the loaded range — safe to do
-      // while Calendar is still hidden. The actual scroll happens once you
-      // open that tab (see showSection), since measuring a hidden element's
-      // width would incorrectly come back as 0.
-      const target = parseLocalDate(savedGanttDate);
-      while (target < ganttRangeStart && extendGanttBackward()) {}
-      while (target > ganttRangeEnd && extendGanttForward()) {}
-      pendingGanttRestoreDate = savedGanttDate;
-    }
 
     renderPeriodSelectors();
 
