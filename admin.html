@@ -173,26 +173,26 @@
 
   /* Gantt calendar */
   .period-select select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
-  .gantt-panel-scroll{max-height:65vh;overflow:auto;}
-  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;width:max-content;min-width:100%;}
-  .gantt-labels{flex-shrink:0;width:140px;background:#FAF8F2;border-right:1px solid var(--line);}
-  .glabel{height:32px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .glabel.head{height:28px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;background:#FAF8F2;}
-  .gantt-scroll{flex:1;min-width:0;position:relative;}
+  .gantt-panel-scroll{overflow:visible;}
+  .gantt-wrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .gantt-labels{flex-shrink:0;width:150px;background:#FAF8F2;border-right:1px solid var(--line);padding-bottom:16px;}
+  .glabel{height:38px;display:flex;align-items:center;padding:0 10px;font-size:13px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .glabel.head{height:30px;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;background:#FAF8F2;}
+  .gantt-scroll{flex:1;min-width:0;position:relative;overflow-x:auto;padding-bottom:16px;}
   .gantt-row{display:grid;position:relative;}
-  .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:32px;}
+  .gantt-daycell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);height:38px;}
   .gantt-daycell.odd-day{background:#EFECE2;}
   .gantt-daycell.weekend-day{background:#EAE6F5;}
-  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:28px;border-bottom:1px solid var(--line);}
+  .gantt-daycell.head{background:#FAF8F2;font-size:10px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;font-weight:600;height:30px;border-bottom:1px solid var(--line);}
   .gantt-daycell.head.weekend-day{background:#E4DFF2;}
   .gantt-daycell.month-start{border-left:2px solid var(--amber);}
   .gantt-daycell.head.month-start{color:var(--amber-dark);font-weight:700;}
-  .gantt-bar{align-self:center;height:22px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;position:relative;z-index:1;}
+  .gantt-bar{align-self:center;height:26px;border-radius:5px;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;margin:0 1px;position:relative;z-index:1;}
   .gantt-bar.maintenance{background:repeating-linear-gradient(45deg, #8a8f89, #8a8f89 6px, #767b75 6px, #767b75 12px);justify-content:center;}
   .gantt-now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:4;pointer-events:none;}
   .gantt-now-line::before{content:'';position:absolute;top:0;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--red);}
   .gantt-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .gantt-nav select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
+  .gantt-nav select,.gantt-nav input{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:6px 10px;background:var(--paper);color:var(--ink);}
 
   /* Reservation cards are always clickable to edit */
   .res-card{cursor:pointer;transition:box-shadow .15s,transform .1s;}
@@ -309,20 +309,17 @@
             <span><i class="sw" style="background:var(--amber);"></i>Direct</span>
           </div>
           <div class="gantt-nav">
-            <button class="btn btn-outline" onclick="shiftGantt(-1)">‹ Anterior</button>
-            <button class="btn btn-outline" onclick="jumpGanttToday()">Azi</button>
-            <button class="btn btn-outline" onclick="shiftGantt(1)">Următor ›</button>
+            <input type="date" id="gantt-jump-date" onchange="jumpGanttToDate(this.value)" title="Sari la o dată exactă">
             <select id="gantt-viewmode" onchange="setGanttView(this.value)">
-              <option value="week">Vizualizare săptămână</option>
-              <option value="month" selected>Vizualizare lună</option>
+              <option value="week">Coloane late</option>
+              <option value="month" selected>Coloane compacte</option>
             </select>
           </div>
         </div>
-        <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px;" id="gantt-range-label"></div>
         <div class="panel gantt-panel-scroll" style="padding:0;">
           <div id="gantt"></div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Derulare continuă — un sejur nu este niciodată întrerupt la limita dintre luni. Barele sunt colorate după sursă și etichetate cu prenumele oaspetelui.</p>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Derulare continuă, de la trecut până la sfârșitul anului 2099 — un sejur nu este niciodată întrerupt. Barele sunt colorate după sursă și etichetate cu prenumele oaspetelui.</p>
       </section>
 
       <!-- RESERVATIONS -->
@@ -1311,22 +1308,86 @@
   // CALENDAR — a rolling, continuously-scrollable window instead of a
   // fixed calendar month, so a stay is never cut off at month's end.
   // ---------------------------------------------------------------
-  let ganttViewMode = 'month'; // 'week' (7 days) | 'month' (35 rolling days)
-  let ganttStart = startOfWeek(new Date());
+  let ganttViewMode = 'month'; // now purely a column-width choice — 'week' = wide columns, 'month' = compact
+  const GANTT_MAX_DATE = new Date(2099, 11, 31);
+  const GANTT_MIN_DATE = addDays(today0(), -730); // 2 years back — generous, not truly unbounded
+  const GANTT_CHUNK_DAYS = 90;
+  let ganttRangeStart = addDays(today0(), -60);
+  let ganttRangeEnd = addDays(today0(), 180);
 
-  function ganttWindowDays(){ return ganttViewMode === 'week' ? 7 : 35; }
+  function ganttTotalDays(){
+    return Math.round((ganttRangeEnd - ganttRangeStart) / 86400000) + 1;
+  }
+  function extendGanttForward(){
+    if (ganttRangeEnd >= GANTT_MAX_DATE) return false;
+    const next = addDays(ganttRangeEnd, GANTT_CHUNK_DAYS);
+    ganttRangeEnd = next > GANTT_MAX_DATE ? GANTT_MAX_DATE : next;
+    return true;
+  }
+  function extendGanttBackward(){
+    if (ganttRangeStart <= GANTT_MIN_DATE) return false;
+    const prev = addDays(ganttRangeStart, -GANTT_CHUNK_DAYS);
+    ganttRangeStart = prev < GANTT_MIN_DATE ? GANTT_MIN_DATE : prev;
+    return true;
+  }
 
-  function shiftGantt(dir){
-    ganttStart = addDays(ganttStart, dir * ganttWindowDays());
-    renderGantt();
-  }
-  function jumpGanttToday(){
-    ganttStart = startOfWeek(new Date());
-    renderGantt();
-  }
   function setGanttView(mode){
     ganttViewMode = mode;
     renderGantt();
+  }
+
+  // Ensures the target date is within the loaded range (extending as
+  // needed, up to the hard caps), then scrolls it into view.
+  function jumpGanttToDate(dateStr){
+    if (!dateStr) return;
+    const target = parseLocalDate(dateStr);
+    while (target < ganttRangeStart && extendGanttBackward()) {}
+    while (target > ganttRangeEnd && extendGanttForward()) {}
+    renderGantt();
+    requestAnimationFrame(() => {
+      const scrollEl = document.querySelector('#gantt .gantt-scroll');
+      const sample = scrollEl && scrollEl.querySelector('.gantt-daycell');
+      if (!scrollEl || !sample) return;
+      const colW = sample.getBoundingClientRect().width;
+      const dayIdx = dayOffset(dateStr, ganttRangeStart);
+      scrollEl.scrollLeft = Math.max(0, (dayIdx - 1) * colW);
+    });
+  }
+
+  // Watches horizontal scrolling and silently loads another chunk of days
+  // whenever the person nears either edge — this is what makes the
+  // calendar feel continuous instead of a fixed page you have to click
+  // through. Re-attached after every render since innerHTML wipes listeners.
+  function attachGanttScrollListener(){
+    const scrollEl = document.querySelector('#gantt .gantt-scroll');
+    if (!scrollEl) return;
+    let ticking = false;
+    scrollEl.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const threshold = 500;
+        const nearRight = (scrollEl.scrollWidth - scrollEl.clientWidth - scrollEl.scrollLeft) < threshold;
+        const nearLeft = scrollEl.scrollLeft < threshold;
+
+        if (nearRight && ganttRangeEnd < GANTT_MAX_DATE) {
+          extendGanttForward();
+          renderGantt(); // appending at the end — the saved/restored scrollLeft stays visually correct on its own
+        } else if (nearLeft && ganttRangeStart > GANTT_MIN_DATE) {
+          const oldStart = ganttRangeStart;
+          extendGanttBackward();
+          const prependedDays = Math.round((oldStart - ganttRangeStart) / 86400000);
+          renderGantt();
+          const newScrollEl = document.querySelector('#gantt .gantt-scroll');
+          const sample = newScrollEl && newScrollEl.querySelector('.gantt-daycell');
+          if (newScrollEl && sample) {
+            const colW = sample.getBoundingClientRect().width;
+            newScrollEl.scrollLeft += prependedDays * colW; // corrects for content inserted before the current view
+          }
+        }
+      });
+    });
   }
 
   function dayClasses(dt, extra){
@@ -1349,9 +1410,8 @@
     if (old) old.remove();
 
     const now = new Date();
-    const dayIdx = dayOffset(localISODate(now), ganttStart);
-    const days = ganttWindowDays();
-    if (dayIdx < 0 || dayIdx >= days) return; // "today" isn't in the visible window
+    const dayIdx = dayOffset(localISODate(now), ganttRangeStart);
+    if (dayIdx < 0 || dayIdx >= ganttTotalDays()) return; // "today" isn't in the loaded range
 
     const sampleCell = scrollEl.querySelector('.gantt-daycell');
     if (!sampleCell) return;
@@ -1369,18 +1429,22 @@
     const el = document.getElementById('gantt');
     if (!el) return;
 
-    const days = ganttWindowDays();
-    const first = ganttStart;
+    // Preserve horizontal scroll position across re-renders triggered by
+    // other things changing (new booking, tab switch, etc.) — without
+    // this, every re-render would silently snap back to the start.
+    const prevScrollEl = document.querySelector('#gantt .gantt-scroll');
+    const prevScrollLeft = prevScrollEl ? prevScrollEl.scrollLeft : 0;
+
+    const days = ganttTotalDays();
+    const first = ganttRangeStart;
     const colWidth = ganttViewMode === 'week' ? 64 : 26;
     const colTemplate = `repeat(${days}, minmax(${colWidth}px,1fr))`;
-
-    const rangeLabel = document.getElementById('gantt-range-label');
-    if (rangeLabel) rangeLabel.textContent = `${fmtShort(first)} – ${fmtShort(addDays(first, days - 1))}`;
 
     const rooms = [];
     for (let n = 1; n <= 9; n++) rooms.push({ num: n, type: APARTMENT_ROOMS.includes(n) ? 'Apartament' : 'Standard' });
 
-    // Fixed, non-scrolling label column
+    // Fixed, genuinely non-scrolling label column — it's simply not part
+    // of the scrollable element at all, so it can't move no matter what.
     const labelsHTML = `<div class="glabel head">Cameră</div>` +
       rooms.map(room => `<div class="glabel">${room.num} · ${room.type}</div>`).join('');
 
@@ -1427,6 +1491,10 @@
       <div class="gantt-scroll">${scrollHTML}</div>
     </div>`;
 
+    const newScrollEl = document.querySelector('#gantt .gantt-scroll');
+    if (newScrollEl) newScrollEl.scrollLeft = prevScrollLeft;
+
+    attachGanttScrollListener();
     renderNowLine();
   }
 
@@ -1520,10 +1588,10 @@
   function setPeriod(kind, value){
     selPeriod[kind] = (kind === 'month' && value === 'all') ? 'all' : parseInt(value, 10);
     renderPeriodSelectors();
-    // If we're looking at the calendar, jump its rolling window to that month too
+    // If we're looking at the calendar, jump it to that month too
     // (only meaningful for a specific month, not "all").
     if (!isAllMonths() && document.getElementById('calendar').classList.contains('active')) {
-      ganttStart = startOfWeek(new Date(selPeriod.year, selPeriod.month, 1));
+      jumpGanttToDate(localISODate(new Date(selPeriod.year, selPeriod.month, 1)));
     }
     renderReservations();
   }
