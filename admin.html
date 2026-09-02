@@ -597,6 +597,23 @@
 
     toggleSidebar(false); // close the mobile sidebar after navigating
 
+    // If we have a saved calendar position waiting to be restored, do it
+    // now that the Calendar tab is actually visible — measuring column
+    // widths on a hidden (display:none) element would just give 0.
+    if (id === 'calendar' && pendingGanttRestoreDate) {
+      const dateToRestore = pendingGanttRestoreDate;
+      pendingGanttRestoreDate = null;
+      requestAnimationFrame(() => {
+        const scrollEl = document.querySelector('#gantt .gantt-scroll');
+        const sample = scrollEl && scrollEl.querySelector('.gantt-daycell');
+        if (scrollEl && sample) {
+          const colW = sample.getBoundingClientRect().width;
+          const dayIdx = dayOffset(dateToRestore, ganttRangeStart);
+          scrollEl.scrollLeft = Math.max(0, (dayIdx - 1) * colW);
+        }
+      });
+    }
+
     // Only push a new history entry when navigating forward (not when
     // responding to the browser's own Back/Forward buttons).
     if (!fromHistory) {
@@ -1314,6 +1331,7 @@
   const GANTT_CHUNK_DAYS = 90;
   let ganttRangeStart = addDays(today0(), -60);
   let ganttRangeEnd = addDays(today0(), 180);
+  let pendingGanttRestoreDate = null; // set at load if there's a saved position to restore once Calendar is visible
 
   function ganttTotalDays(){
     return Math.round((ganttRangeEnd - ganttRangeStart) / 86400000) + 1;
@@ -1358,11 +1376,24 @@
   // whenever the person nears either edge — this is what makes the
   // calendar feel continuous instead of a fixed page you have to click
   // through. Re-attached after every render since innerHTML wipes listeners.
+  let ganttSaveTimer = null;
+  function saveGanttScrollPosition(){
+    const scrollEl = document.querySelector('#gantt .gantt-scroll');
+    const sample = scrollEl && scrollEl.querySelector('.gantt-daycell');
+    if (!scrollEl || !sample) return;
+    const colW = sample.getBoundingClientRect().width;
+    const dayIdx = Math.round(scrollEl.scrollLeft / colW);
+    localStorage.setItem('vs_gantt_last_date', localISODate(addDays(ganttRangeStart, dayIdx)));
+  }
+
   function attachGanttScrollListener(){
     const scrollEl = document.querySelector('#gantt .gantt-scroll');
     if (!scrollEl) return;
     let ticking = false;
     scrollEl.addEventListener('scroll', () => {
+      clearTimeout(ganttSaveTimer);
+      ganttSaveTimer = setTimeout(saveGanttScrollPosition, 300); // remembers where you left off, across reloads
+
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
@@ -2245,6 +2276,18 @@
 
   (async () => {
     await refreshFromServer();
+
+    const savedGanttDate = localStorage.getItem('vs_gantt_last_date');
+    if (savedGanttDate) {
+      // Just make sure the saved date is within the loaded range — safe to do
+      // while Calendar is still hidden. The actual scroll happens once you
+      // open that tab (see showSection), since measuring a hidden element's
+      // width would incorrectly come back as 0.
+      const target = parseLocalDate(savedGanttDate);
+      while (target < ganttRangeStart && extendGanttBackward()) {}
+      while (target > ganttRangeEnd && extendGanttForward()) {}
+      pendingGanttRestoreDate = savedGanttDate;
+    }
 
     renderPeriodSelectors();
 
