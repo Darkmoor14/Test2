@@ -36,10 +36,10 @@
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);}
   a{color:inherit;}
-  .app{display:flex;min-height:100vh;}
+  .app{display:flex;height:100vh;height:100dvh;overflow:hidden;}
 
   /* Sidebar */
-  .sidebar{width:236px;background:var(--pine-900);color:#EDEEE7;flex-shrink:0;display:flex;flex-direction:column;padding:24px 16px;transition:transform .2s ease;}
+  .sidebar{width:236px;background:var(--pine-900);color:#EDEEE7;flex-shrink:0;display:flex;flex-direction:column;padding:24px 16px;transition:transform .2s ease;overflow-y:auto;}
   .brand{font-family:'Fraunces',serif;font-weight:600;font-size:20px;color:#fff;padding:0 8px 24px;letter-spacing:0.2px;}
   .brand span{display:block;font-family:'Inter',sans-serif;font-weight:400;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#8FA495;margin-top:4px;}
   nav{display:flex;flex-direction:column;gap:2px;}
@@ -48,7 +48,7 @@
   .nav-btn.active{background:var(--pine-700);color:#fff;}
   .nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:0;flex-shrink:0;}
   .nav-btn.active .nav-dot{opacity:1;color:var(--amber);}
-  .sidebar-foot{margin-top:auto;padding:12px 8px 0;font-size:12px;color:#7C8C7F;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;}
+  .sidebar-foot{margin-top:auto;padding:12px 8px 0;font-size:12px;color:#7C8C7F;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;display:none;}
   .sync-pill{display:inline-flex;align-items:center;gap:6px;margin-top:8px;}
   .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:#5FAE7A;}
 
@@ -58,15 +58,15 @@
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(18,38,29,0.5);z-index:150;}
 
   /* Main */
-  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--line);background:var(--paper);}
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;border-bottom:1px solid var(--line);background:var(--paper);flex-shrink:0;}
   .topbar h1{font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;}
   .topbar-sub{font-size:13px;color:var(--ink-soft);margin-top:2px;}
   .btn{font-family:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:9px 16px;border:1px solid transparent;cursor:pointer;transition:opacity .15s;}
   .btn:hover{opacity:0.88;}
   .btn-primary{background:var(--pine-800);color:#fff;}
   .btn-outline{background:transparent;color:var(--ink);border-color:var(--line);}
-  .content{padding:28px 32px;overflow-y:auto;}
+  .content{padding:28px 32px;overflow-y:auto;flex:1;min-height:0;}
   .section{display:none;}
   .section.active{display:block;}
 
@@ -227,6 +227,8 @@
     .btn{font-size:12px;padding:7px 12px;}
 
     .content{padding:18px 14px;}
+
+    .sidebar-foot{display:block;}
   }
 </style>
 </head>
@@ -319,7 +321,6 @@
         <div class="panel gantt-panel-scroll" style="padding:0;">
           <div id="gantt"></div>
         </div>
-        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;">Derulare continuă, de la trecut până la sfârșitul anului 2099 — un sejur nu este niciodată întrerupt. Barele sunt colorate după sursă și etichetate cu prenumele oaspetelui.</p>
       </section>
 
       <!-- RESERVATIONS -->
