@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>Vila Silvia — Admin</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -1051,6 +1052,21 @@
     return (r.extras || []).reduce((sum, e) => sum + e.price * e.qty, 0);
   }
 
+  function escapeHTML(value){
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    })[char]);
+  }
+
+  function cloneExtras(extras){
+    return (extras || []).map(extra => ({ ...extra }));
+  }
+
+  function minibarQuantity(extras, catalogId){
+    return (extras || []).filter(extra => extra.type === 'minibar' && extra.catalogId === catalogId)
+      .reduce((total, extra) => total + extra.qty, 0);
+  }
+
   let reservations = [
     { id: 1, guest: "Kovács Anna",     phone: "+40 742 111 222", room: "Standard",   roomNumber: 2, source: "booking", status: "checkedin", checkin: d(-1), checkout: d(2),  price: 1240, extras: [{catalogId:'sauna', type:'service', name:'Saună', price:80, qty:1}] },
     { id: 2, guest: "Marius Popescu",  phone: "+40 745 333 444", room: "Standard",   roomNumber: 3, source: "direct",  status: "paid",      checkin: d(0),  checkout: d(2),  price: 680,  extras: [] },
@@ -1520,15 +1536,15 @@
         const e = Math.min(days, dayOffset(r.checkout, first));
         if (e <= s) return '';
         const color = r.source === 'booking' ? 'var(--blue)' : 'var(--amber)';
-        return `<div class="gantt-bar" title="${r.guest} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
-                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${r.guest.split(' ')[0]}</div>`;
+        return `<div class="gantt-bar" title="${escapeHTML(r.guest)} · ${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}"
+                  style="grid-column:${s+1} / ${e+1};grid-row:1;background:${color};">${escapeHTML(r.guest.split(' ')[0])}</div>`;
       }).join('');
 
       const maintBars = maintenanceBlocks.filter(m => m.roomNumber === room.num).map(m => {
         const s = Math.max(0, dayOffset(m.from, first));
         const e = Math.min(days, dayOffset(m.to, first));
         if (e <= s) return '';
-        return `<div class="gantt-bar maintenance" title="Întreținere: ${m.reason || 'motiv nespecificat'} (${fmtDate(m.from)} – ${fmtDate(m.to)})"
+        return `<div class="gantt-bar maintenance" title="Întreținere: ${escapeHTML(m.reason || 'motiv nespecificat')} (${fmtDate(m.from)} – ${fmtDate(m.to)})"
                   style="grid-column:${s+1} / ${e+1};grid-row:1;">🔧</div>`;
       }).join('');
 
@@ -1577,7 +1593,7 @@
 
     const SERVICE_ICONS = { massage: '💆', sauna: '🧖' };
     const serviceBadges = (r.extras || []).filter(e => e.type === 'service').map(e =>
-      `<span class="service-badge">${SERVICE_ICONS[e.catalogId] || '✨'} ${e.name}</span>`
+      `<span class="service-badge">${SERVICE_ICONS[e.catalogId] || '✨'} ${escapeHTML(e.name)}</span>`
     ).join('');
 
     const extrasSum = extrasTotal(r);
@@ -1588,9 +1604,9 @@
     return `
       <div class="res-card ${statusClass}" onclick="handleCardClick(${r.id})">
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
-        <div class="res-guest">${r.guest}${linkedBadge}</div>
-        <span class="res-room">${r.room} · Nr. ${r.roomNumber}</span>
-        <div class="res-line">📞 ${r.phone}</div>
+        <div class="res-guest">${escapeHTML(r.guest)}${linkedBadge}</div>
+        <span class="res-room">${escapeHTML(r.room)} · Nr. ${r.roomNumber}</span>
+        <div class="res-line">📞 ${escapeHTML(r.phone)}</div>
         <div class="res-line">👤 ${r.guests || '—'} ${r.guests === 1 ? 'persoană' : 'persoane'}</div>
         <div class="res-period">${fmtDate(r.checkin)} → ${fmtDate(r.checkout)}</div>
         ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
@@ -1859,6 +1875,7 @@
     const checkin = document.getElementById('f-checkin').value;
     const checkout = document.getElementById('f-checkout').value;
     if (!guest || !checkin || !checkout) { alert('Te rugăm completează numele oaspetelui, data de check-in și data de check-out.'); return; }
+    if (parseLocalDate(checkout) <= parseLocalDate(checkin)) { alert('Data de check-out trebuie să fie după data de check-in.'); return; }
 
     // Read whatever room number is currently shown per line — whether it
     // was auto-suggested or the person manually picked a different one.
@@ -1892,7 +1909,7 @@
     }
 
     const newlyCreated = picks.map((p, i) => {
-      const row = { id: Date.now() + i, guest, phone, room: p.room, roomNumber: p.roomNumber, guests: p.guests, source, status: 'reserved', checkin, checkout, price: 0, groupId: null, extras: [] };
+      const row = { id: Date.now() + i, guest, phone, room: p.room, roomNumber: p.roomNumber, guests: p.guests, source, status: 'reserved', checkin, checkout, price: nightsBetween(checkin, checkout) * roomRate(p.room, p.roomNumber), groupId: null, extras: [] };
       reservations.push(row);
       return row;
     });
@@ -1985,7 +2002,7 @@
         <td>Nr. ${m.roomNumber}</td>
         <td>${fmtDate(m.from)}</td>
         <td>${fmtDate(m.to)}</td>
-        <td>${m.reason || '—'}</td>
+        <td>${escapeHTML(m.reason || '—')}</td>
         <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px;" onclick="removeMaintenance(${m.id})">Șterge</button></td>
       </tr>`).join('');
     const emptyEl = document.getElementById('maintenance-empty');
@@ -2041,6 +2058,8 @@
   // etc.) stop the click from bubbling up, so they still work on their own.
   // ---------------------------------------------------------------
   let editingId = null;
+  let editingExtras = [];
+  let editingOriginalExtras = [];
 
   function populateRoomNumberOptions(type, current){
     const pool = poolForFormType(type);
@@ -2053,6 +2072,8 @@
     const r = reservations.find(x => x.id === id);
     if (!r) return;
     editingId = id;
+    editingExtras = cloneExtras(r.extras);
+    editingOriginalExtras = cloneExtras(r.extras);
     document.getElementById('e2-guest').value = r.guest;
     document.getElementById('e2-phone').value = r.phone;
     const formType = roomPricingKey(r.room, r.roomNumber); // resolves to 'StandardNoBalcony' when this is room 5
@@ -2073,23 +2094,21 @@
   }
 
   function renderEditExtras(){
-    const r = reservations.find(x => x.id === editingId);
     const el = document.getElementById('e2-extras-list');
-    if (!r || !el) return;
-    if (!r.extras || r.extras.length === 0) {
+    if (!el) return;
+    if (editingExtras.length === 0) {
       el.innerHTML = `<p style="font-size:12px;color:var(--ink-soft);">Niciun extra adăugat încă.</p>`;
       return;
     }
-    el.innerHTML = r.extras.map((e, i) => `
+    el.innerHTML = editingExtras.map((e, i) => `
       <div class="extra-row">
-        <span>${e.name} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
+        <span>${escapeHTML(e.name)} ${e.qty > 1 ? '× ' + e.qty : ''} — ${e.price * e.qty} lei</span>
         <button type="button" onclick="removeExtraFromEditing(${i})">Elimină</button>
-      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Total extra</span><span>${extrasTotal(r)} lei</span></div>`;
+      </div>`).join('') + `<div class="extra-row" style="border-bottom:none;font-weight:700;"><span>Total extra</span><span>${extrasTotal({ extras: editingExtras })} lei</span></div>`;
   }
 
   async function addExtraToEditing(type){
-    const r = reservations.find(x => x.id === editingId);
-    if (!r) return;
+    if (!reservations.some(x => x.id === editingId)) return;
     const selectId = type === 'service' ? 'e2-service-select' : 'e2-minibar-select';
     const qtyId = type === 'service' ? 'e2-service-qty' : 'e2-minibar-qty';
     const catalogId = document.getElementById(selectId).value;
@@ -2098,60 +2117,53 @@
     if (!item) return;
 
     if (type === 'minibar') {
-      if (qty > item.stock) { alert(`Mai sunt doar ${item.stock} bucăți de ${item.name} în stoc.`); return; }
-      item.stock -= qty; // decrement shared inventory immediately
+      const available = item.stock + minibarQuantity(editingOriginalExtras, catalogId) - minibarQuantity(editingExtras, catalogId);
+      if (qty > available) { alert(`Mai sunt doar ${Math.max(0, available)} bucăți de ${item.name} în stoc.`); return; }
     }
 
     const newExtra = { catalogId, type, name: item.name, price: item.price, qty };
-    r.extras = r.extras || [];
-    r.extras.push(newExtra);
+    editingExtras.push(newExtra);
     renderEditExtras();
-    renderInventoryTable();
-
-    const saved = await dbAddExtra(r.id, newExtra);
-    if (saved && saved.id) {
-      newExtra.id = saved.id; // needed so removal can target the right backend row
-      renderEditExtras();
-    }
   }
 
   function removeExtraFromEditing(index){
-    const r = reservations.find(x => x.id === editingId);
-    if (!r || !r.extras[index]) return;
-    const removed = r.extras[index];
-    if (removed.type === 'minibar') {
-      const item = findCatalogItem('minibar', removed.catalogId);
-      if (item) item.stock += removed.qty; // restock on removal
-    }
-    r.extras.splice(index, 1);
-    if (removed.id) dbRemoveExtra(removed.id, removed.catalogId, removed.type, removed.qty);
+    if (!editingExtras[index]) return;
+    editingExtras.splice(index, 1);
 
     renderEditExtras();
-    renderInventoryTable();
   }
 
   function closeEditReservation(){
     document.getElementById('edit-reservation-modal').classList.remove('open');
     document.body.classList.remove('modal-open');
     editingId = null;
-    renderReservations(); // in case extras changed stock/prices while editing
+    editingExtras = [];
+    editingOriginalExtras = [];
+    renderReservations();
   }
 
   async function submitEditReservation(){
     const r = reservations.find(x => x.id === editingId);
     if (!r) return;
 
+    const guest = document.getElementById('e2-guest').value.trim();
     const newRoomNumber = parseInt(document.getElementById('e2-roomnumber').value, 10);
     const newCheckin = document.getElementById('e2-checkin').value;
     const newCheckout = document.getElementById('e2-checkout').value;
     const newStatus = document.getElementById('e2-status').value;
 
+    if (!guest || !newCheckin || !newCheckout) { alert('Te rugăm completează numele oaspetelui, data de check-in și data de check-out.'); return; }
+    if (parseLocalDate(newCheckout) <= parseLocalDate(newCheckin)) { alert('Data de check-out trebuie să fie după data de check-in.'); return; }
     if (newStatus !== 'cancelled' && roomHasConflict(newRoomNumber, newCheckin, newCheckout, r.id)) {
       alert(`Camera ${newRoomNumber} este deja rezervată pentru un interval de date care se suprapune. Alege altă cameră sau alte date.`);
       return;
     }
 
-    r.guest = document.getElementById('e2-guest').value.trim();
+    for (const item of catalog.minibar) {
+      const delta = minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
+      if (delta > item.stock) { alert(`Stoc insuficient pentru ${item.name}. Actualizează extrasurile și încearcă din nou.`); return; }
+    }
+    r.guest = guest;
     r.phone = document.getElementById('e2-phone').value.trim();
     r.room = normalizeRoomType(document.getElementById('e2-roomtype').value);
     r.roomNumber = newRoomNumber;
@@ -2161,11 +2173,26 @@
     r.source = document.getElementById('e2-source').value;
     r.status = newStatus;
     r.price = parseFloat(document.getElementById('e2-price').value) || 0;
+    r.extras = cloneExtras(editingExtras);
 
     await dbUpdateReservation(r.id, {
       guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.roomNumber,
       source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout, price: r.price, guests: r.guests
     });
+    for (const original of editingOriginalExtras) {
+      if (original.id && !editingExtras.some(extra => extra.id === original.id)) {
+        await dbRemoveExtra(original.id, original.catalogId, original.type, original.qty);
+      }
+    }
+    for (const extra of r.extras) {
+      if (!extra.id) {
+        const saved = await dbAddExtra(r.id, extra);
+        if (saved && saved.id) extra.id = saved.id;
+      }
+    }
+    for (const item of catalog.minibar) {
+      item.stock -= minibarQuantity(editingExtras, item.id) - minibarQuantity(editingOriginalExtras, item.id);
+    }
     await syncExtraPersonCharge(r); // recompute in case guests, dates, or room changed
 
     closeEditReservation();
@@ -2287,6 +2314,7 @@
 
     reservations = state.reservations;
     catalog.rooms = state.catalog.rooms;
+    catalog.services = state.catalog.services;
     catalog.minibar = state.catalog.minibar;
     maintenanceBlocks = state.maintenance;
     renderReservations(); // cascades to Gantt, Reports, Pricing tables, Inventory, Maintenance table
