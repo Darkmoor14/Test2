@@ -231,9 +231,29 @@
 
     .sidebar-foot{display:block;}
   }
+  .login-gate{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#12261D,#26503C);}
+  .login-gate[hidden]{display:none;}
+  .login-card{width:min(100%,400px);background:#fff;border-radius:14px;padding:32px;box-shadow:0 24px 70px rgba(0,0,0,.3);}
+  .login-card h1{font-family:'Fraunces',serif;font-size:28px;margin:0 0 8px;}
+  .login-card p{color:var(--ink-soft);font-size:14px;margin:0 0 20px;}
+  .login-card label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;}
+  .login-card input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;}
+  .login-error{min-height:20px;color:var(--red);font-size:13px;margin-top:10px;}
 </style>
 </head>
 <body>
+<section class="login-gate" id="login-gate">
+  <form class="login-card" id="local-login-form">
+    <h1>Vila Silvia</h1>
+    <p>Autentificare administrare</p>
+    <label for="login-email">E-mail</label>
+    <input id="login-email" type="email" autocomplete="username" required>
+    <label for="login-password">Parolă</label>
+    <input id="login-password" type="password" autocomplete="current-password" required>
+    <p class="login-error" id="login-error" aria-live="polite"></p>
+    <button class="btn btn-primary" type="submit" style="width:100%;margin-top:4px;">Intră în administrare</button>
+  </form>
+</section>
 
 <div class="app">
   <aside class="sidebar">
@@ -568,7 +588,6 @@
 
 <button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Înapoi sus">↑</button>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Section titles + subtitles shown in the topbar per section
   const meta = {
@@ -684,19 +703,33 @@
   }
 
   // ---------------------------------------------------------------
-  // DATABASE (Supabase) — fill these in once you've created a Supabase
-  // project and run supabase/schema.sql (see supabase/README.md):
-  //   const SUPABASE_URL = 'https://xxxxx.supabase.co';
-  //   const SUPABASE_ANON_KEY = 'eyJ...';
-  // Left blank, the dashboard runs standalone with local demo data
-  // only — nothing is saved between page loads.
+  // LOCAL API — the browser talks only to the local backend. Database
+  // credentials never appear in this file.
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://gyvqgeqrogspmnhjwlse.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_eMusZ8c8-e0qp6VYR_wD8w_mExIzwnM';
-
-  const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
+  const API_BASE = 'http://127.0.0.1:3000';
+  const sb = null; // legacy functions are progressively replaced below
+  async function apiRequest(path, options = {}){
+    const response = await fetch(API_BASE + path, { credentials:'include', headers:{ 'content-type':'application/json', ...(options.headers || {}) }, ...options });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.error || 'Cererea către server a eșuat.');
+    }
+    return response.status === 204 ? null : response.json();
+  }
+  async function ensureLocalSession(){
+    try { await apiRequest('/api/me'); document.getElementById('login-gate').hidden = true; return true; }
+    catch { document.getElementById('login-gate').hidden = false; return false; }
+  }
+  document.getElementById('local-login-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const error = document.getElementById('login-error');
+    error.textContent = '';
+    try {
+      await apiRequest('/api/auth/login', { method:'POST', body:JSON.stringify({ email:document.getElementById('login-email').value, password:document.getElementById('login-password').value }) });
+      document.getElementById('login-gate').hidden = true;
+      await refreshFromServer();
+    } catch (err) { error.textContent = err.message; }
+  });
 
   // ---------------------------------------------------------------
   // PUSH NOTIFICATIONS — reminds you a day ahead of check-ins. See
@@ -789,6 +822,10 @@
   }
 
   async function dbLoadState(){
+    try { return await apiRequest('/api/state'); }
+    catch (err) { console.error('Încărcarea din API a eșuat:', err); return null; }
+    /* Legacy Supabase implementation retained temporarily while remaining
+       dashboard write endpoints are migrated. */
     if (!sb) return null;
     try {
       const [resv, extr, rooms, services, minibar, expenses, maintenance] = await Promise.all([
@@ -837,6 +874,10 @@
   }
 
   async function dbCreateReservation(r){
+    try {
+      const saved = await apiRequest('/api/reservations', { method:'POST', body:JSON.stringify({ fullName:r.guest, phone:r.phone || undefined, roomId:r.roomNumber, checkin:r.checkin, checkout:r.checkout, guestsCount:r.guests || 1, source:r.source || 'direct' }) });
+      return { id:saved.id };
+    } catch (err) { console.error(err); return null; }
     if (!sb) return null;
     const { data, error } = await sb.from('reservations').insert({
       guest: r.guest, phone: r.phone, room: r.room, room_number: r.roomNumber,
@@ -1567,22 +1608,23 @@
     // Once checkout date has passed, a non-cancelled stay displays as "Checked out".
     const statusClass = r.status === 'cancelled' ? 'status-cancelled' : (closed ? 'status-checkedout' : `status-${r.status}`);
     const statusText = r.status === 'cancelled' ? 'Anulat' : (closed ? 'Plecat' : statusLabel[r.status]);
+    const idArg = escapeHTML(JSON.stringify(r.id));
 
     let actions = '';
     if (!closed) {
       if (r.status === 'reserved') {
         actions = `
-          <button onclick="event.stopPropagation(); markPaid(${r.id})">Marchează plătit</button>
-          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Fă check-in (plătește acum)</button>
-          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Anulează</button>`;
+          <button onclick="event.stopPropagation(); markPaid(${idArg})">Marchează plătit</button>
+          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${idArg})">Fă check-in (plătește acum)</button>
+          <button onclick="event.stopPropagation(); markCancelled(${idArg})">Anulează</button>`;
       } else if (r.status === 'paid') {
         actions = `
-          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${r.id})">Fă check-in</button>
-          <button onclick="event.stopPropagation(); markCancelled(${r.id})">Anulează</button>`;
+          <button class="primary" onclick="event.stopPropagation(); markCheckedIn(${idArg})">Fă check-in</button>
+          <button onclick="event.stopPropagation(); markCancelled(${idArg})">Anulează</button>`;
       } else if (r.status === 'checkedin') {
         actions = `
-          <button onclick="event.stopPropagation(); openExtendStay(${r.id})">+ Prelungește sejurul</button>
-          <button onclick="event.stopPropagation(); openShortenStay(${r.id})">− Pleacă mai devreme</button>`;
+          <button onclick="event.stopPropagation(); openExtendStay(${idArg})">+ Prelungește sejurul</button>
+          <button onclick="event.stopPropagation(); openShortenStay(${idArg})">− Pleacă mai devreme</button>`;
       }
     }
 
@@ -1602,7 +1644,7 @@
       : '';
 
     return `
-      <div class="res-card ${statusClass}" onclick="handleCardClick(${r.id})">
+      <div class="res-card ${statusClass}" onclick="handleCardClick(${idArg})">
         <span class="res-source src-${r.source}">${sourceLabel[r.source]}</span>
         <div class="res-guest">${escapeHTML(r.guest)}${linkedBadge}</div>
         <span class="res-room">${escapeHTML(r.room)} · Nr. ${r.roomNumber}</span>
@@ -2328,6 +2370,7 @@
   }
 
   (async () => {
+    if (!(await ensureLocalSession())) return;
     await refreshFromServer();
 
     renderPeriodSelectors();
