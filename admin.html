@@ -235,11 +235,29 @@
 </head>
 <body>
 
-<div class="app">
+<div id="login-overlay" style="position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:#12261D;">
+  <form id="login-form" style="background:#fff;border-radius:12px;padding:32px;width:100%;max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,0.35);">
+    <h2 style="font-size:20px;margin-bottom:4px;color:#12261D;">Vila Silvia</h2>
+    <p style="font-size:13px;color:#7C8C7F;margin-bottom:20px;">Autentificare recepție</p>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:#3C4A43;margin-bottom:4px;">Email</label>
+      <input id="login-email" type="email" required autocomplete="username" style="width:100%;padding:9px 11px;border:1px solid #CFD7CB;border-radius:8px;font-family:inherit;font-size:14px;">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:#3C4A43;margin-bottom:4px;">Parolă</label>
+      <input id="login-password" type="password" required autocomplete="current-password" style="width:100%;padding:9px 11px;border:1px solid #CFD7CB;border-radius:8px;font-family:inherit;font-size:14px;">
+    </div>
+    <p id="login-error" style="display:none;color:#B4453A;font-size:12px;margin-bottom:12px;"></p>
+    <button type="submit" style="width:100%;padding:10px;border:none;border-radius:8px;background:#26503C;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">Autentificare</button>
+  </form>
+</div>
+
+<div class="app" style="display:none;">
   <aside class="sidebar">
     <div class="brand">Vila Silvia
       <span>Admin · Sovata</span>
     </div>
+    <button onclick="handleLogout()" style="width:calc(100% - 16px);margin:0 8px 12px;background:none;border:1px solid rgba(255,255,255,0.18);color:#C7D1C6;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">Deconectare</button>
     <nav id="nav">
       <button class="nav-btn active" data-section="overview"><span class="nav-dot"></span>Prezentare generală</button>
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
@@ -691,12 +709,55 @@
   // Left blank, the dashboard runs standalone with local demo data
   // only — nothing is saved between page loads.
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://gyvqgeqrogspmnhjwlse.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_eMusZ8c8-e0qp6VYR_wD8w_mExIzwnM';
+  const SUPABASE_URL = 'https://supabase.tag-stop.de';
+  const SUPABASE_ANON_KEY = 'sb_publishable_0BR0U569JJ_NIYrxX5YXrI_6yxEk_bt';
 
   const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
+
+  // ---------------------------------------------------------------
+  // LOGIN — data now requires an authenticated session (Row Level
+  // Security on the new self-hosted instance), so the dashboard stays
+  // hidden behind this gate until someone signs in with a real account.
+  // ---------------------------------------------------------------
+  async function checkAuth(){
+    if (!sb) return true; // no backend configured — fall back to local demo mode, ungated
+    const { data } = await sb.auth.getSession();
+    return !!data.session;
+  }
+
+  function showLoginOverlay(){
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.querySelector('.app').style.display = 'none';
+  }
+
+  function hideLoginOverlay(){
+    document.getElementById('login-overlay').style.display = 'none';
+    document.querySelector('.app').style.display = '';
+  }
+
+  async function handleLoginSubmit(e){
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      errorEl.textContent = 'Email sau parolă incorectă.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    hideLoginOverlay();
+    startApp();
+  }
+
+  async function handleLogout(){
+    await sb.auth.signOut();
+    showLoginOverlay();
+  }
 
   // ---------------------------------------------------------------
   // PUSH NOTIFICATIONS — reminds you a day ahead of check-ins. See
@@ -2327,7 +2388,7 @@
     }
   }
 
-  (async () => {
+  async function startApp(){
     await refreshFromServer();
 
     renderPeriodSelectors();
@@ -2347,6 +2408,17 @@
     }
 
     setInterval(renderNowLine, 60000); // keeps the "now" line creeping forward through the day
+  }
+
+  document.getElementById('login-form').addEventListener('submit', handleLoginSubmit);
+
+  (async () => {
+    if (await checkAuth()) {
+      hideLoginOverlay();
+      await startApp();
+    } else {
+      showLoginOverlay();
+    }
   })();
 </script>
 
