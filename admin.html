@@ -715,6 +715,11 @@
   const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
+  // Vila Silvia's tables live in their own schema on the shared self-hosted
+  // instance (not the default "public" one, which Tag Stop's contact form
+  // and other businesses also use) — every table read/write goes through
+  // this schema-scoped client instead of sb directly.
+  const db = sb ? sb.schema('vila_silvia') : null;
 
   // ---------------------------------------------------------------
   // LOGIN — data now requires an authenticated session (Row Level
@@ -776,7 +781,7 @@
   async function dbSaveSubscription(sub){
     if (!sb) return;
     const json = sub.toJSON();
-    const { error } = await sb.from('push_subscriptions').upsert({
+    const { error } = await db.from('push_subscriptions').upsert({
       endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth
     }, { onConflict: 'endpoint' });
     if (error) console.error(error);
@@ -853,13 +858,13 @@
     if (!sb) return null;
     try {
       const [resv, extr, rooms, services, minibar, expenses, maintenance] = await Promise.all([
-        sb.from('reservations').select('*').order('id'),
-        sb.from('extras').select('*'),
-        sb.from('room_prices').select('*'),
-        sb.from('services').select('*'),
-        sb.from('minibar').select('*'),
-        sb.from('expenses').select('*').order('date', { ascending: false }),
-        sb.from('maintenance').select('*').order('from_date')
+        db.from('reservations').select('*').order('id'),
+        db.from('extras').select('*'),
+        db.from('room_prices').select('*'),
+        db.from('services').select('*'),
+        db.from('minibar').select('*'),
+        db.from('expenses').select('*').order('date', { ascending: false }),
+        db.from('maintenance').select('*').order('from_date')
       ]);
       [resv, extr, rooms, services, minibar, expenses, maintenance].forEach(r => { if (r.error) throw r.error; });
 
@@ -899,7 +904,7 @@
 
   async function dbCreateReservation(r){
     if (!sb) return null;
-    const { data, error } = await sb.from('reservations').insert({
+    const { data, error } = await db.from('reservations').insert({
       guest: r.guest, phone: r.phone, room: r.room, room_number: r.roomNumber,
       source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
       price: r.price, group_id: r.groupId, guests: r.guests
@@ -913,37 +918,37 @@
     const columnMap = { roomNumber: 'room_number', groupId: 'group_id' };
     const payload = {};
     Object.keys(fields).forEach(k => { payload[columnMap[k] || k] = fields[k]; });
-    const { error } = await sb.from('reservations').update(payload).eq('id', id);
+    const { error } = await db.from('reservations').update(payload).eq('id', id);
     if (error) console.error(error);
   }
 
   async function dbDeleteReservation(id){
     if (!sb) return;
-    const { error } = await sb.from('reservations').delete().eq('id', id);
+    const { error } = await db.from('reservations').delete().eq('id', id);
     if (error) console.error(error);
   }
 
   async function dbAddExtra(reservationId, extra){
     if (!sb) return null;
-    const { data, error } = await sb.from('extras').insert({
+    const { data, error } = await db.from('extras').insert({
       reservation_id: reservationId, catalog_id: extra.catalogId, type: extra.type,
       name: extra.name, price: extra.price, qty: extra.qty
     }).select().single();
     if (error) { console.error(error); return null; }
     if (extra.type === 'minibar' && extra.catalogId) {
-      const { data: item } = await sb.from('minibar').select('stock').eq('id', extra.catalogId).single();
-      if (item) await sb.from('minibar').update({ stock: item.stock - extra.qty }).eq('id', extra.catalogId);
+      const { data: item } = await db.from('minibar').select('stock').eq('id', extra.catalogId).single();
+      if (item) await db.from('minibar').update({ stock: item.stock - extra.qty }).eq('id', extra.catalogId);
     }
     return { id: data.id };
   }
 
   async function dbRemoveExtra(extraId, catalogId, type, qty){
     if (!sb) return;
-    const { error } = await sb.from('extras').delete().eq('id', extraId);
+    const { error } = await db.from('extras').delete().eq('id', extraId);
     if (error) console.error(error);
     if (type === 'minibar' && catalogId) {
-      const { data: item } = await sb.from('minibar').select('stock').eq('id', catalogId).single();
-      if (item) await sb.from('minibar').update({ stock: item.stock + qty }).eq('id', catalogId);
+      const { data: item } = await db.from('minibar').select('stock').eq('id', catalogId).single();
+      if (item) await db.from('minibar').update({ stock: item.stock + qty }).eq('id', catalogId);
     }
   }
 
@@ -951,7 +956,7 @@
     if (!sb) return;
     const r = catalog.rooms[roomType];
     if (!r) return;
-    const { error } = await sb.from('room_prices').upsert({
+    const { error } = await db.from('room_prices').upsert({
       room_type: roomType, price: r.price, base_occupancy: r.baseOccupancy, extra_person_price: r.extraPersonPrice
     }, { onConflict: 'room_type' });
     if (error) console.error(error);
@@ -963,33 +968,33 @@
     const row = { id, price };
     if (name !== undefined) row.name = name;
     if (table === 'minibar' && stock !== undefined) row.stock = stock;
-    const { error } = await sb.from(table).upsert(row, { onConflict: 'id' });
+    const { error } = await db.from(table).upsert(row, { onConflict: 'id' });
     if (error) console.error(error);
   }
 
   async function dbRestockMinibar(id, qty){
     if (!sb) return;
-    const { data: item } = await sb.from('minibar').select('stock').eq('id', id).single();
-    if (item) await sb.from('minibar').update({ stock: item.stock + qty }).eq('id', id);
+    const { data: item } = await db.from('minibar').select('stock').eq('id', id).single();
+    if (item) await db.from('minibar').update({ stock: item.stock + qty }).eq('id', id);
   }
 
   async function dbAddExpense(exp){
     if (!sb) return null;
-    const { data, error } = await sb.from('expenses').insert({ date: exp.date, category: exp.category, note: exp.note, amount: exp.amount }).select().single();
+    const { data, error } = await db.from('expenses').insert({ date: exp.date, category: exp.category, note: exp.note, amount: exp.amount }).select().single();
     if (error) { console.error(error); return null; }
     return { id: data.id };
   }
 
   async function dbAddMaintenance(m){
     if (!sb) return null;
-    const { data, error } = await sb.from('maintenance').insert({ room_number: m.roomNumber, from_date: m.from, to_date: m.to, reason: m.reason }).select().single();
+    const { data, error } = await db.from('maintenance').insert({ room_number: m.roomNumber, from_date: m.from, to_date: m.to, reason: m.reason }).select().single();
     if (error) { console.error(error); return null; }
     return { id: data.id };
   }
 
   async function dbRemoveMaintenance(id){
     if (!sb) return;
-    const { error } = await sb.from('maintenance').delete().eq('id', id);
+    const { error } = await db.from('maintenance').delete().eq('id', id);
     if (error) console.error(error);
   }
 
