@@ -709,11 +709,8 @@
   // Left blank, the dashboard runs standalone with local demo data
   // only — nothing is saved between page loads.
   // ---------------------------------------------------------------
-  // TODO: fill in once the dedicated Vila Silvia stack is provisioned
-  // (see the "Dedicated Supabase stacks" runbook) — these are new
-  // secrets generated for that stack, not the shared instance's.
   const SUPABASE_URL = 'https://vila-silvia.tag-stop.de';
-  const SUPABASE_ANON_KEY = 'REPLACE_WITH_NEW_STACK_PUBLISHABLE_KEY';
+  const SUPABASE_ANON_KEY = 'sb_publishable_uSEgQMWVrWceCIpy2K5tyH_8FT7tewe';
 
   const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
