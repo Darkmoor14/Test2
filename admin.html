@@ -709,17 +709,18 @@
   // Left blank, the dashboard runs standalone with local demo data
   // only — nothing is saved between page loads.
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://supabase.tag-stop.de';
-  const SUPABASE_ANON_KEY = 'sb_publishable_0BR0U569JJ_NIYrxX5YXrI_6yxEk_bt';
+  // TODO: fill in once the dedicated Vila Silvia stack is provisioned
+  // (see the "Dedicated Supabase stacks" runbook) — these are new
+  // secrets generated for that stack, not the shared instance's.
+  const SUPABASE_URL = 'https://vila-silvia.tag-stop.de';
+  const SUPABASE_ANON_KEY = 'REPLACE_WITH_NEW_STACK_PUBLISHABLE_KEY';
 
   const sb = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
-  // Vila Silvia's tables live in their own schema on the shared self-hosted
-  // instance (not the default "public" one, which Tag Stop's contact form
-  // and other businesses also use) — every table read/write goes through
-  // this schema-scoped client instead of sb directly.
-  const db = sb ? sb.schema('vila_silvia') : null;
+  // Vila Silvia has its own dedicated stack now — no schema scoping
+  // needed, it's the only project (and only schema) on this instance.
+  const db = sb;
 
   // ---------------------------------------------------------------
   // LOGIN — data now requires an authenticated session (Row Level
