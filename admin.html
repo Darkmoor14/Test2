@@ -160,6 +160,29 @@
   .res-status-label.status-cancelled{color:var(--red);}
   .res-card.status-checkedout{border-left-color:var(--ink-soft);opacity:0.85;}
   .res-status-label.status-checkedout{color:var(--ink-soft);}
+  .res-card.status-noshow{border-left-color:var(--red);opacity:0.85;}
+  .res-status-label.status-noshow{color:var(--red);}
+
+  .monitor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0;}
+  .monitor-card{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:18px;cursor:pointer;text-align:left;min-height:228px;}
+  .monitor-card:hover{border-color:var(--pine-700);box-shadow:0 0 0 1px var(--pine-700) inset;}
+  .monitor-top{display:flex;justify-content:space-between;gap:10px;align-items:start;}
+  .monitor-name{font-size:11px;letter-spacing:1px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;}
+  .monitor-count{font-family:'Fraunces',serif;font-size:28px;margin-top:4px;}
+  .monitor-labels{font-size:11px;color:var(--ink-soft);display:flex;gap:10px;}
+  .monitor-labels i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;background:var(--teal);}
+  .monitor-labels .warning{background:var(--amber);}
+  .monitor-labels .error{background:var(--red);}
+  .monitor-bars{height:106px;display:flex;align-items:end;gap:5px;border-bottom:1px solid var(--line);margin-top:18px;padding:0 3px;}
+  .monitor-bar{flex:1;min-width:5px;background:var(--teal);border-radius:2px 2px 0 0;}
+  .monitor-bar.warning{background:var(--amber);}
+  .monitor-bar.error{background:var(--red);}
+  .monitor-foot{font-size:11px;color:var(--ink-soft);margin-top:10px;display:flex;justify-content:space-between;}
+  .monitor-log-row{display:grid;grid-template-columns:140px 75px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;}
+  .monitor-log-row.warning{background:#fff8e9;}
+  .monitor-log-row.error{background:#fff0ef;}
+  .monitor-log-row:last-child{border-bottom:none;}
+  @media(max-width:700px){.monitor-grid{grid-template-columns:1fr;}.monitor-log-row{grid-template-columns:1fr;gap:3px;}}
 
   /* Charts */
   .bar-chart{display:flex;align-items:flex-end;gap:14px;height:160px;padding-top:10px;}
@@ -263,7 +286,7 @@
       <button class="nav-btn" data-section="calendar"><span class="nav-dot"></span>Calendar</button>
       <button class="nav-btn" data-section="reservations"><span class="nav-dot"></span>Rezervări</button>
       <button class="nav-btn" data-section="rooms"><span class="nav-dot"></span>Camere &amp; tarife</button>
-      <button class="nav-btn" data-section="reports"><span class="nav-dot"></span>Rapoarte</button>
+      <button class="nav-btn" data-section="system"><span class="nav-dot"></span>Sistem</button>
     </nav>
     <div class="sidebar-foot">
       <button id="notif-btn" onclick="enableNotifications()" style="width:100%;background:none;border:1px solid rgba(255,255,255,0.18);color:#C7D1C6;border-radius:8px;padding:9px 10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;">🔔 Activează notificări</button>
@@ -284,6 +307,7 @@
       </div>
       <div class="topbar-controls" style="display:flex;gap:10px;align-items:center;">
         <div class="period-select" id="topbar-period"></div>
+        <button class="btn btn-outline" id="system-alert-bell" onclick="openSystemAlerts()" title="Alerte sistem" style="display:none;font-size:18px;padding:5px 10px;position:relative;">🔔<span id="system-alert-count" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:12px;font-size:10px;min-width:17px;padding:2px 4px;"></span></button>
         <button class="btn btn-primary" id="topbar-add-booking" onclick="openAddBooking()">+ Adaugă rezervare</button>
       </div>
     </div>
@@ -322,6 +346,28 @@
         <div class="res-grid" id="overview-res-grid"></div>
       </section>
 
+      <!-- SYSTEM MONITORING -->
+      <section class="section" id="system">
+        <div class="panel-head" style="margin-bottom:14px;">
+          <div>
+            <h2 style="font-size:16px;margin:0;">Monitorizare sistem</h2>
+            <p id="system-checked-at" style="font-size:12px;color:var(--ink-soft);margin:4px 0 0;">Se verifică la deschiderea paginii.</p>
+          </div>
+          <div style="display:flex;gap:8px;"><select id="monitor-range" onchange="setMonitorRange(this.value)" style="font-family:inherit;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--paper);"><option value="0.25">Ultimele 15 min</option><option value="1">Ultima oră</option><option value="24" selected>Ultimele 24 ore</option></select><button class="btn btn-outline" onclick="loadSystemHealth()">Reverifică</button></div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-label">API &amp; bază de date</div><div class="stat-value" id="system-api">–</div><div class="stat-note" id="system-api-note">Supabase (self-hosted)</div></div>
+          <div class="stat-card"><div class="stat-label">Autentificare</div><div class="stat-value" id="system-auth">–</div><div class="stat-note" id="system-auth-note">Sesiunea ta curentă</div></div>
+          <div class="stat-card"><div class="stat-label">Notificări automate</div><div class="stat-value" id="system-scheduler">–</div><div class="stat-note" id="system-scheduler-note">Rulează zilnic, ora 8:00</div></div>
+          <div class="stat-card"><div class="stat-label">Copie de siguranță</div><div class="stat-value" id="system-backup">–</div><div class="stat-note" id="system-backup-note">Rulează zilnic, ora 3:00</div></div>
+        </div>
+        <div class="monitor-grid" id="monitor-chart-grid"></div>
+        <div class="panel">
+          <div class="panel-head"><h2>Ce este monitorizat</h2></div>
+          <p style="font-size:13px;color:var(--ink-soft);margin:0;">Acest ecran verifică baza de date, sesiunea ta de autentificare, ultima rulare a notificărilor automate și ultima copie de siguranță — citite direct din jurnalul de evenimente al bazei de date. Jurnalul păstrează doar ultimele 48 de ore.</p>
+        </div>
+      </section>
+
       <!-- CALENDAR -->
       <section class="section" id="calendar">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
@@ -348,13 +394,16 @@
           <div class="res-tabs">
             <button class="res-tab active" data-tab="active" onclick="showResTab('active')">Active <span class="count" id="count-active"></span></button>
             <button class="res-tab" data-tab="closed" onclick="showResTab('closed')">Închise <span class="count" id="count-closed"></span></button>
+            <button class="res-tab" data-tab="archived" onclick="showResTab('archived')">Arhivate <span class="count" id="count-archived"></span></button>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
+            <input id="reservation-search" type="search" oninput="setReservationSearch(this.value)" placeholder="Caută nume, telefon sau cameră" aria-label="Caută rezervări" style="min-width:230px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper);">
             <button class="btn btn-primary" onclick="openAddBooking()">+ Adaugă rezervare</button>
           </div>
         </div>
         <div class="res-grid" id="res-grid-active"></div>
         <div class="res-grid" id="res-grid-closed" style="display:none;"></div>
+        <div class="res-grid" id="res-grid-archived" style="display:none;"></div>
         <p class="empty-note" id="res-empty" style="display:none;">Nicio rezervare aici.</p>
       </section>
 
@@ -396,7 +445,7 @@
 
         <div class="panel">
           <div class="panel-head"><h2>Tarife minibar</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocurile se gestionează pe pagina Rapoarte — prețurile de aici se aplică peste tot, inclusiv acolo.</p>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Prețurile se aplică automat la extra-urile adăugate unei rezervări.</p>
           <table>
             <tr><th>Produs</th><th>Preț (lei)</th></tr>
             <tbody id="minibar-pricing-table"></tbody>
@@ -414,45 +463,6 @@
             <tbody id="maintenance-table"></tbody>
           </table>
           <p class="empty-note" id="maintenance-empty" style="display:none;">Nicio blocare activă în acest moment.</p>
-        </div>
-      </section>
-
-      <!-- REPORTS -->
-      <section class="section" id="reports">
-        <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
-          <div class="stat-card">
-            <div class="stat-label">Venit luna selectată</div>
-            <div class="stat-value" id="rev-month">–</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Venit anul selectat</div>
-            <div class="stat-value" id="rev-year">–</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Rezervări pe lună</h2></div>
-          <div id="chart-reservations"></div>
-        </div>
-
-        <div class="stat-grid" style="grid-template-columns:1fr 1fr;">
-          <div class="panel">
-            <div class="panel-head"><h2>Booking.com vs Direct</h2></div>
-            <div id="chart-source"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><h2>Cazați vs Anulate</h2></div>
-            <div id="chart-outcome"></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Inventar minibar</h2></div>
-          <p style="font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:12px;">Stocul scade automat când un produs de minibar este adăugat la rezervarea unui oaspete. Realimentează aici după ce completezi camerele — prețurile se setează pe pagina Camere &amp; tarife.</p>
-          <table>
-            <tr><th>Produs</th><th>Preț</th><th>În stoc</th><th></th></tr>
-            <tbody id="inventory-table"></tbody>
-          </table>
         </div>
       </section>
 
@@ -561,6 +571,7 @@
       <option value="paid">Plătit</option>
       <option value="checkedin">Cazat</option>
       <option value="cancelled">Anulat</option>
+      <option value="noshow">Nu a sosit</option>
     </select>
     <label>Preț cameră (lei)</label>
     <input type="number" id="e2-price">
@@ -584,6 +595,20 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="monitor-log-modal">
+  <div class="modal" style="max-width:800px;max-height:80vh;overflow:auto;">
+    <div class="panel-head"><div><h2 id="monitor-log-title">Jurnal sistem</h2><p id="monitor-log-subtitle" style="font-size:12px;color:var(--ink-soft);margin:4px 0 0;"></p></div><div style="display:flex;gap:8px;"><button class="btn btn-outline" title="Copiază și descarcă JSON" onclick="exportMonitorLog()">⤓ JSON</button><button class="btn btn-outline" onclick="closeMonitorLog()">Închide</button></div></div>
+    <div id="monitor-log-list"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="guest-history-modal">
+  <div class="modal" style="max-width:650px;max-height:80vh;overflow:auto;">
+    <div class="panel-head"><div><h2 id="guest-history-title">Istoric oaspete</h2><p id="guest-history-subtitle" style="font-size:12px;color:var(--ink-soft);margin:4px 0 0;"></p></div><button class="btn btn-outline" onclick="closeGuestHistory()">Închide</button></div>
+    <div id="guest-history-list"></div>
+  </div>
+</div>
+
 <button class="back-to-top" id="back-to-top" onclick="scrollContentTop()" aria-label="Înapoi sus">↑</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -594,7 +619,7 @@
     calendar:     ["Calendar", "Toate camerele"],
     reservations: ["Rezervări", "Toate rezervările, din orice sursă"],
     rooms:        ["Camere & tarife", "3 tarife de cameră"],
-    reports:      ["Rapoarte", "Luna aceasta"]
+    system:       ["Sistem", "Stare servicii"]
   };
 
   function showSection(id, fromHistory){
@@ -605,11 +630,15 @@
     document.getElementById('page-title').textContent = meta[id][0];
     document.getElementById('page-sub').textContent = meta[id][1];
 
-    const hideAddBooking = (id === 'reports' || id === 'rooms');
+    const hideAddBooking = (id === 'system' || id === 'rooms');
     document.getElementById('topbar-add-booking').style.display = hideAddBooking ? 'none' : 'inline-block';
+    document.getElementById('system-alert-bell').style.display = id === 'system' ? 'inline-block' : 'none';
 
     const periodEl = document.getElementById('topbar-period');
     if (periodEl) periodEl.style.display = (id === 'overview') ? 'none' : 'flex';
+
+    if (id === 'system') startSystemMonitoring();
+    else stopSystemMonitoring();
 
     document.querySelector('.content').scrollTop = 0;
     const backBtn = document.getElementById('back-to-top');
@@ -751,6 +780,7 @@
     if (error) {
       errorEl.textContent = 'Email sau parolă incorectă.';
       errorEl.style.display = 'block';
+      logError('admin.html login', error);
       return;
     }
     hideLoginOverlay();
@@ -763,11 +793,183 @@
   }
 
   // ---------------------------------------------------------------
+  // SYSTEM MONITORING — reads the same app_errors log table the backup
+  // script and push-notification function already write to (set up the
+  // same way as Tag Stop's own admin.html), rather than a separate
+  // monitoring service. Kept honest about what's actually tracked: a
+  // live probe for API/DB/session, and a 48-hour event log for the two
+  // scheduled jobs (backups, push notifications).
+  // ---------------------------------------------------------------
+  function logError(source, err){
+    if (!sb || !err) return;
+    sb.rpc('log_error', { p_source: source, p_code: err.code || null, p_message: err.message || String(err) }).catch(() => {});
+  }
+
+  function setSystemStatus(id, healthy, note){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = healthy ? 'OK' : 'Eroare';
+    el.style.color = healthy ? 'var(--pine-700)' : 'var(--red)';
+    const noteEl = document.getElementById(id + '-note');
+    if (noteEl && note) noteEl.textContent = note;
+  }
+
+  let systemMonitoringTimer = null;
+  let systemAlertCount = 0;
+  let currentMonitorCategory = null;
+  function startSystemMonitoring(){
+    loadSystemHealth();
+    if (!systemMonitoringTimer) systemMonitoringTimer = setInterval(() => loadSystemHealth(true), 60000);
+  }
+  function stopSystemMonitoring(){ if (systemMonitoringTimer) { clearInterval(systemMonitoringTimer); systemMonitoringTimer = null; } }
+  function raiseSystemAlert(problemNames){
+    systemAlertCount += problemNames.length;
+    const count = document.getElementById('system-alert-count');
+    count.textContent = systemAlertCount > 9 ? '9+' : systemAlertCount;
+    count.style.display = 'inline-block';
+    const checkedAt = document.getElementById('system-checked-at');
+    if (checkedAt) checkedAt.textContent = `Atenție: ${problemNames.join(', ')} necesită verificare.`;
+    if ('Notification' in window && Notification.permission === 'granted') new Notification('Vila Silvia — alertă sistem', { body: problemNames.join(', ') });
+  }
+  function openSystemAlerts(){
+    const select = document.getElementById('monitor-range');
+    if (select) select.value = '24';
+    monitorRangeHours = 24;
+    loadSystemMonitoring().then(() => { currentMonitorCategory = null; openMonitorLog(null, true); });
+  }
+
+  async function loadSystemHealth(silent = false){
+    const checkedAt = document.getElementById('system-checked-at');
+    if (checkedAt) checkedAt.textContent = 'Se verifică…';
+    const problems = [];
+    try {
+      if (!sb) throw new Error('Fără conexiune configurată');
+      const dbCheck = await sb.rpc('get_db_size');
+      setSystemStatus('system-api', !dbCheck.error, dbCheck.error ? dbCheck.error.message : 'Răspunde normal');
+      if (dbCheck.error) problems.push('API și bază de date');
+
+      const { data: sessionData } = await sb.auth.getSession();
+      const hasSession = !!sessionData.session;
+      setSystemStatus('system-auth', hasSession, hasSession ? 'Sesiune activă' : 'Fără sesiune');
+      if (!hasSession) problems.push('Autentificare');
+
+      const events = await loadRecentEvents();
+      const lastPush = events.find(e => e.source === 'push-notification');
+      setSystemStatus('system-scheduler', !!lastPush && !lastPush.code, lastPush ? `Ultima rulare: ${new Date(lastPush.occurred_at).toLocaleString('ro-RO')}` : 'Nicio rulare în ultimele 48h');
+      if (lastPush && lastPush.code) problems.push('Job notificări');
+
+      const lastBackup = events.find(e => e.source === 'backup');
+      setSystemStatus('system-backup', !!lastBackup && !lastBackup.code, lastBackup ? `Ultima copie: ${new Date(lastBackup.occurred_at).toLocaleString('ro-RO')}` : 'Nicio copie în ultimele 48h');
+      if (lastBackup && lastBackup.code) problems.push('Copie de siguranță');
+
+      if (checkedAt) checkedAt.textContent = `Verificat: ${new Date().toLocaleString('ro-RO')}`;
+      if (problems.length && silent) raiseSystemAlert(problems);
+      renderMonitorCharts(events);
+    } catch (error) {
+      ['system-api', 'system-auth', 'system-scheduler', 'system-backup'].forEach(id => setSystemStatus(id, false));
+      if (checkedAt) checkedAt.textContent = error.message || 'Verificarea nu a reușit.';
+      if (silent) raiseSystemAlert(['Monitorizare sistem']);
+    }
+  }
+
+  async function loadRecentEvents(){
+    const { data, error } = await sb.rpc('get_recent_errors');
+    return error ? [] : (data || []);
+  }
+
+  let monitorEvents = [];
+  let monitorRangeHours = 24;
+  const monitorCategories = { backup: 'Copii de siguranță', 'push-notification': 'Notificări automate' };
+  async function setMonitorRange(value){ monitorRangeHours = Number(value); renderMonitorCharts(await loadRecentEvents()); }
+  async function loadSystemMonitoring(){ renderMonitorCharts(await loadRecentEvents()); }
+  function monitorRangeLabel(){ return monitorRangeHours < 1 ? `Ultimele ${Math.round(monitorRangeHours * 60)} minute` : (monitorRangeHours === 1 ? 'Ultima oră' : 'Ultimele 24 ore'); }
+  function renderMonitorCharts(events){
+    monitorEvents = events;
+    const grid = document.getElementById('monitor-chart-grid');
+    if (!grid) return;
+    const now = Date.now();
+    const rangeMs = monitorRangeHours * 3600000;
+    const categories = Object.keys(monitorCategories);
+    grid.innerHTML = categories.map(category => {
+      const events = monitorEvents.filter(e => e.source === category && (now - new Date(e.occurred_at).getTime()) <= rangeMs);
+      const buckets = Array.from({ length: 12 }, (_, index) => events.filter(e => {
+        const age = now - new Date(e.occurred_at).getTime(), bucketMs = rangeMs / 12;
+        return age >= (11 - index) * bucketMs && age < (12 - index) * bucketMs;
+      }));
+      const maximum = Math.max(1, ...buckets.map(b => b.length));
+      const errors = events.filter(e => e.code).length;
+      const ok = events.length - errors;
+      const bars = buckets.map(b => {
+        const severity = b.some(e => e.code) ? 'error' : '';
+        return `<span class="monitor-bar ${severity}" style="height:${Math.max(3, b.length / maximum * 100)}%"></span>`;
+      }).join('');
+      return `<button class="monitor-card" onclick="openMonitorLog('${category}')"><div class="monitor-top"><div><div class="monitor-name">${monitorCategories[category]}</div><div class="monitor-count">${events.length}</div></div><div class="monitor-labels"><span><i></i>OK ${ok}</span><span><i class="error"></i>${errors}</span></div></div><div class="monitor-bars">${bars}</div><div class="monitor-foot"><span>${monitorRangeLabel()}</span><span>Vezi jurnalul →</span></div></button>`;
+    }).join('');
+  }
+  function openMonitorLog(category, errorsOnly = false){
+    currentMonitorCategory = category;
+    const now = Date.now(), rangeMs = monitorRangeHours * 3600000;
+    const rows = monitorEvents.filter(e => (now - new Date(e.occurred_at).getTime()) <= rangeMs)
+      .filter(e => !category || e.source === category)
+      .filter(e => !errorsOnly || e.code);
+    document.getElementById('monitor-log-title').textContent = category ? `Jurnal: ${monitorCategories[category]}` : 'Alerte sistem';
+    document.getElementById('monitor-log-subtitle').textContent = `${rows.length} evenimente · ${monitorRangeLabel().toLowerCase()}`;
+    document.getElementById('monitor-log-list').innerHTML = rows.map(e => `<div class="monitor-log-row ${e.code ? 'error' : ''}"><span>${new Date(e.occurred_at).toLocaleString('ro-RO')}</span><strong>${escapeHTML(e.code || '—')}</strong><span>${escapeHTML(e.source)}<br><span style="color:var(--ink-soft);">${escapeHTML(e.message)}</span></span></div>`).join('') || '<p class="empty-note">Nu există evenimente în acest interval.</p>';
+    document.getElementById('monitor-log-modal').classList.add('open');
+  }
+  function closeMonitorLog(){ document.getElementById('monitor-log-modal').classList.remove('open'); }
+  async function exportMonitorLog(){
+    const rows = monitorEvents.filter(e => !currentMonitorCategory || e.source === currentMonitorCategory);
+    const content = JSON.stringify({ exportedAt: new Date().toISOString(), range: monitorRangeLabel(), category: currentMonitorCategory || 'toate', events: rows }, null, 2);
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+    link.download = `vila-silvia-monitorizare-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // ---------------------------------------------------------------
+  // GUEST HISTORY — every past reservation for one guest (matched by
+  // guest_id, see migration 0004), plus editable notes/preferences.
+  // ---------------------------------------------------------------
+  async function openGuestHistory(guestId){
+    const modal = document.getElementById('guest-history-modal');
+    const list = document.getElementById('guest-history-list');
+    document.getElementById('guest-history-title').textContent = 'Istoric oaspete';
+    document.getElementById('guest-history-subtitle').textContent = 'Se încarcă…';
+    list.innerHTML = '';
+    modal.classList.add('open');
+    if (!guestId) { document.getElementById('guest-history-subtitle').textContent = 'Fără date de oaspete.'; return; }
+    try {
+      const [{ data: guest, error: guestError }, { data: stays, error: staysError }] = await Promise.all([
+        db.from('guests').select('*').eq('id', guestId).single(),
+        db.from('reservations').select('*').eq('guest_id', guestId).order('checkin', { ascending: false })
+      ]);
+      if (guestError) throw guestError;
+      if (staysError) throw staysError;
+      document.getElementById('guest-history-title').textContent = guest.full_name;
+      document.getElementById('guest-history-subtitle').textContent = [guest.phone, guest.email].filter(Boolean).join(' · ') || 'Fără date de contact';
+      const notes = `<div style="margin:12px 0;"><label style="display:block;font-size:12px;color:var(--ink-soft);margin-bottom:5px;">Notițe și preferințe</label><textarea id="guest-history-notes" rows="3" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid var(--line);border-radius:8px;font:inherit;">${escapeHTML(guest.notes || '')}</textarea><button class="btn btn-outline" style="margin-top:6px;" onclick="saveGuestNotes(${guestId})">Salvează notițele</button></div>`;
+      const staysHTML = stays.map(s => `<div style="padding:10px 0;border-top:1px solid var(--line);font-size:13px;"><strong>${fmtDate(s.checkin)} → ${fmtDate(s.checkout)}</strong><br><span style="color:var(--ink-soft);">${escapeHTML(s.room)} Nr. ${s.room_number} · ${statusLabel[s.status] || s.status}</span></div>`).join('') || '<p class="empty-note">Nicio rezervare anterioară.</p>';
+      list.innerHTML = notes + staysHTML;
+    } catch (error) {
+      document.getElementById('guest-history-subtitle').textContent = 'Nu s-a putut încărca istoricul.';
+      logError('guest history', error);
+    }
+  }
+  async function saveGuestNotes(guestId){
+    const notes = document.getElementById('guest-history-notes').value;
+    const { error } = await db.from('guests').update({ notes }).eq('id', guestId);
+    if (error) logError('guest notes', error);
+  }
+  function closeGuestHistory(){ document.getElementById('guest-history-modal').classList.remove('open'); }
+
+  // ---------------------------------------------------------------
   // PUSH NOTIFICATIONS — reminds you a day ahead of check-ins. See
   // supabase/functions/push-notification for the piece that
   // actually sends these (runs once a day on a schedule).
   // ---------------------------------------------------------------
-  const VAPID_PUBLIC_KEY = 'BIwCdCtkEKCeckI6doWIzLlD8ALHvTBLxT_2li6irrIFnUpuS3GS_8YFUXlLhemd3PegzofSqALHGeDaTJ1bBs0';
+  const VAPID_PUBLIC_KEY = 'BGn8zS65xAiGy2aU61KQSLgEBpo6_XyyqyIf1WL2zffXvii6a865E1nQ8yo9gdk9F24S7HRE-YUkt7Oh9bIhR20';
 
   function urlBase64ToUint8Array(base64String){
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -876,7 +1078,7 @@
       const reservationsOut = (resv.data || []).map(r => ({
         id: r.id, guest: r.guest, phone: r.phone, room: r.room, roomNumber: r.room_number,
         source: r.source, status: r.status, checkin: r.checkin, checkout: r.checkout,
-        price: r.price, groupId: r.group_id, guests: r.guests, extras: extrasByRes[r.id] || []
+        price: r.price, groupId: r.group_id, guests: r.guests, guestId: r.guest_id, extras: extrasByRes[r.id] || []
       }));
 
       const roomsOut = {};
@@ -968,12 +1170,6 @@
     if (table === 'minibar' && stock !== undefined) row.stock = stock;
     const { error } = await db.from(table).upsert(row, { onConflict: 'id' });
     if (error) console.error(error);
-  }
-
-  async function dbRestockMinibar(id, qty){
-    if (!sb) return;
-    const { data: item } = await db.from('minibar').select('stock').eq('id', id).single();
-    if (item) await db.from('minibar').update({ stock: item.stock + qty }).eq('id', id);
   }
 
   async function dbAddExpense(exp){
@@ -1357,11 +1553,15 @@
     }
   }
 
-  const statusLabel = { reserved: "Rezervat", paid: "Plătit", checkedin: "Cazat", cancelled: "Anulat" };
+  const statusLabel = { reserved: "Rezervat", paid: "Plătit", checkedin: "Cazat", cancelled: "Anulat", noshow: "Nu a sosit" };
   const sourceLabel = { booking: "Booking.com", direct: "Direct" };
 
+  function isArchived(r){
+    return r.status === 'cancelled' || r.status === 'noshow';
+  }
+
   function isClosed(r){
-    if (r.status === 'cancelled') return true;
+    if (isArchived(r)) return false; // archived reservations have their own tab
     return parseLocalDate(r.checkout) < today0();
   }
 
@@ -1628,12 +1828,12 @@
   }
 
   function cardHTML(r, closed){
-    // Once checkout date has passed, a non-cancelled stay displays as "Checked out".
-    const statusClass = r.status === 'cancelled' ? 'status-cancelled' : (closed ? 'status-checkedout' : `status-${r.status}`);
-    const statusText = r.status === 'cancelled' ? 'Anulat' : (closed ? 'Plecat' : statusLabel[r.status]);
+    // Once checkout date has passed, a non-cancelled/no-show stay displays as "Checked out".
+    const statusClass = isArchived(r) ? `status-${r.status}` : (closed ? 'status-checkedout' : `status-${r.status}`);
+    const statusText = isArchived(r) ? statusLabel[r.status] : (closed ? 'Plecat' : statusLabel[r.status]);
 
     let actions = '';
-    if (!closed) {
+    if (!closed && !isArchived(r)) {
       if (r.status === 'reserved') {
         actions = `
           <button onclick="event.stopPropagation(); markPaid(${r.id})">Marchează plătit</button>
@@ -1676,7 +1876,7 @@
         ${serviceBadges ? `<div style="margin-top:6px;">${serviceBadges}</div>` : ''}
         ${extrasLine}
         <div class="res-status-label ${statusClass}">${statusText}</div>
-        <div class="res-actions">${actions}</div>
+        <div class="res-actions"><button onclick="event.stopPropagation(); openGuestHistory(${r.guestId})">Istoric</button>${actions}</div>
       </div>`;
   }
 
@@ -1732,27 +1932,41 @@
     renderReservations();
   }
 
+  let reservationSearchQuery = '';
+  function setReservationSearch(value){
+    reservationSearchQuery = value.trim().toLowerCase();
+    renderReservations();
+  }
+
   function renderReservations(){
     const inPeriod = r => { if (isAllMonths()) return true; const c = parseLocalDate(r.checkin); return c.getMonth() === selPeriod.month && c.getFullYear() === selPeriod.year; };
+    const matchesSearch = r => {
+      if (!reservationSearchQuery) return true;
+      const haystack = `${r.guest} ${r.phone || ''} ${r.room} ${r.roomNumber}`.toLowerCase();
+      return haystack.includes(reservationSearchQuery);
+    };
     // Both tabs on the Reservations page respect the month/year picker —
     // pick August, see August's reservations, whichever tab you're on.
     const byCheckin = (a, b) => parseLocalDate(a.checkin) - parseLocalDate(b.checkin);
-    const active = reservations.filter(r => !isClosed(r)).filter(inPeriod).sort(byCheckin);
-    const closed = reservations.filter(r => isClosed(r)).filter(inPeriod).sort(byCheckin);
+    const active = reservations.filter(r => !isClosed(r) && !isArchived(r)).filter(inPeriod).filter(matchesSearch).sort(byCheckin);
+    const closed = reservations.filter(r => isClosed(r)).filter(inPeriod).filter(matchesSearch).sort(byCheckin);
+    const archived = reservations.filter(r => isArchived(r)).filter(inPeriod).filter(matchesSearch).sort((a, b) => parseLocalDate(b.checkout) - parseLocalDate(a.checkout));
 
     document.getElementById('res-grid-active').innerHTML = active.map(r => cardHTML(r, false)).join('') || '';
     document.getElementById('res-grid-closed').innerHTML = closed.map(r => cardHTML(r, true)).join('') || '';
+    document.getElementById('res-grid-archived').innerHTML = archived.map(r => cardHTML(r, true)).join('') || '';
     document.getElementById('count-active').textContent = `(${active.length})`;
     document.getElementById('count-closed').textContent = `(${closed.length})`;
+    document.getElementById('count-archived').textContent = `(${archived.length})`;
 
     const currentTab = document.querySelector('.res-tab.active').dataset.tab;
-    const currentList = currentTab === 'active' ? active : closed;
+    const currentList = currentTab === 'active' ? active : currentTab === 'closed' ? closed : archived;
     document.getElementById('res-empty').style.display = currentList.length ? 'none' : 'block';
 
     // Overview stays independent of the month/year picker — it always shows
     // ALL active reservations regardless of period, so nothing upcoming ever
     // silently disappears just because a different month happens to be selected.
-    const allActive = reservations.filter(r => !isClosed(r)).sort(byCheckin);
+    const allActive = reservations.filter(r => !isClosed(r) && !isArchived(r)).sort(byCheckin);
     const checkedInList = allActive.filter(r => r.status === 'checkedin');
     const toArriveList  = allActive.filter(r => r.status !== 'checkedin');
     const paidList      = allActive.filter(r => r.status === 'paid' || r.status === 'checkedin');
@@ -1775,10 +1989,8 @@
     const ovGrid = document.getElementById('overview-res-grid');
     if (ovGrid) ovGrid.innerHTML = ovList.map(r => cardHTML(r, false)).join('') || '<p class="empty-note">Nicio rezervare în această vizualizare.</p>';
 
-    renderReports();
     renderGantt();
     renderPricingTables();
-    renderInventoryTable();
     renderMaintenanceTable();
   }
 
@@ -1809,6 +2021,7 @@
     document.querySelectorAll('.res-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.getElementById('res-grid-active').style.display = tab === 'active' ? 'grid' : 'none';
     document.getElementById('res-grid-closed').style.display = tab === 'closed' ? 'grid' : 'none';
+    document.getElementById('res-grid-archived').style.display = tab === 'archived' ? 'grid' : 'none';
     renderReservations();
   }
 
@@ -2022,30 +2235,6 @@
     if (item) item.price = price;
     dbUpdateCatalogPrice(type, id, price, item ? item.name : undefined, item ? item.stock : undefined);
     renderReservations(); // refreshes the Extras dropdowns' prices too
-  }
-
-  function renderInventoryTable(){
-    const el = document.getElementById('inventory-table');
-    if (!el) return;
-    el.innerHTML = catalog.minibar.map(m => `
-      <tr>
-        <td>${m.name}</td>
-        <td>${m.price} lei</td>
-        <td class="${m.stock <= 5 ? 'stock-low' : ''}">${m.stock}${m.stock <= 5 ? ' — stoc redus!' : ''}</td>
-        <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px;" onclick="restockItem('${m.id}')">+ Restock</button></td>
-      </tr>
-    `).join('');
-  }
-
-  function restockItem(id){
-    const item = findCatalogItem('minibar', id);
-    if (!item) return;
-    const qty = parseInt(prompt(`Câte bucăți de ${item.name} adaugi în stoc?`, '10'), 10);
-    if (qty > 0) {
-      item.stock += qty;
-      dbRestockMinibar(id, qty);
-      renderInventoryTable();
-    }
   }
 
   // ---------------------------------------------------------------
@@ -2282,91 +2471,6 @@
 
   function money(n){ return n.toLocaleString('ro-RO') + ' lei'; }
 
-  function barChart(container, data){
-    const max = Math.max(...data.map(d => d.value), 1);
-    container.innerHTML = `<div class="bar-chart">${data.map(d => `
-      <div class="bar-col">
-        <div class="bar-val">${d.value}</div>
-        <div class="bar" style="height:${(d.value / max * 100) || 2}%;"></div>
-        <div class="bar-label">${d.label}</div>
-      </div>`).join('')}</div>`;
-  }
-
-  function donutChart(container, segments){
-    // segments: [{label, value, color}]
-    const total = segments.reduce((s, x) => s + x.value, 0) || 1;
-    let offset = 0;
-    const r = 46, circ = 2 * Math.PI * r;
-    const circles = segments.map(s => {
-      const frac = s.value / total;
-      const dash = frac * circ;
-      const c = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="16"
-                   stroke-dasharray="${dash} ${circ - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)"/>`;
-      offset += dash;
-      return c;
-    }).join('');
-
-    container.innerHTML = `
-      <div class="donut-wrap">
-        <svg width="120" height="120" viewBox="0 0 120 120">${circles}</svg>
-        <div class="donut-legend">
-          ${segments.map(s => `<div><span class="sw" style="background:${s.color};"></span>${s.label} — ${s.value} (${Math.round(s.value/total*100)}%)</div>`).join('')}
-        </div>
-      </div>`;
-  }
-
-  function renderReports(){
-    const revEl = document.getElementById('rev-month');
-    if (!revEl) return; // reports section not built yet on first call
-
-    const now = new Date();
-    const thisMonth = isAllMonths() ? now.getMonth() : selPeriod.month;
-    const thisYear = selPeriod.year;
-    const countedStatuses = ['paid', 'checkedin'];
-
-    const revenueMonth = reservations
-      .filter(r => countedStatuses.includes(r.status))
-      .filter(r => { const c = parseLocalDate(r.checkin); return c.getMonth() === thisMonth && c.getFullYear() === thisYear; })
-      .reduce((s, r) => s + (r.price || 0) + extrasTotal(r), 0);
-
-    const revenueYear = reservations
-      .filter(r => countedStatuses.includes(r.status))
-      .filter(r => parseLocalDate(r.checkin).getFullYear() === thisYear)
-      .reduce((s, r) => s + (r.price || 0) + extrasTotal(r), 0);
-
-    document.getElementById('rev-month').textContent = money(revenueMonth);
-    document.getElementById('rev-year').textContent = money(revenueYear);
-
-    // Reservations per month (mock trailing 6 months using check-in dates + a bit of history)
-    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const dt = new Date(thisYear, thisMonth - i, 1);
-      months.push({ y: dt.getFullYear(), m: dt.getMonth(), label: monthNames[dt.getMonth()] });
-    }
-    const resPerMonth = months.map(mo => ({
-      label: mo.label,
-      value: reservations.filter(r => { const c = parseLocalDate(r.checkin); return c.getMonth() === mo.m && c.getFullYear() === mo.y; }).length
-    }));
-    barChart(document.getElementById('chart-reservations'), resPerMonth);
-
-    // Booking.com vs Direct
-    const bookingCount = reservations.filter(r => r.source === 'booking').length;
-    const directCount = reservations.filter(r => r.source === 'direct').length;
-    donutChart(document.getElementById('chart-source'), [
-      { label: 'Booking.com', value: bookingCount, color: '#3A6FA0' },
-      { label: 'Direct',      value: directCount,  color: '#B4823A' }
-    ]);
-
-    // Checked in vs Cancelled
-    const checkedInCount = reservations.filter(r => r.status === 'checkedin').length;
-    const cancelledCount = reservations.filter(r => r.status === 'cancelled').length;
-    donutChart(document.getElementById('chart-outcome'), [
-      { label: 'Cazați',  value: checkedInCount, color: '#26503C' },
-      { label: 'Anulate', value: cancelledCount, color: '#B4453A' }
-    ]);
-  }
-
   // ---------------------------------------------------------------
   // STARTUP — try loading real saved data from the backend first; if
   // none is configured (API_BASE is blank) or it's unreachable, the
@@ -2381,7 +2485,7 @@
     catalog.services = state.catalog.services;
     catalog.minibar = state.catalog.minibar;
     maintenanceBlocks = state.maintenance;
-    renderReservations(); // cascades to Gantt, Reports, Pricing tables, Inventory, Maintenance table
+    renderReservations(); // cascades to Gantt, Pricing tables, Maintenance table
 
     // This can finish after (or before) the tab-switch restore below —
     // re-asserting the position here, as the actual last thing to run,

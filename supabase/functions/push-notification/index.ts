@@ -27,6 +27,13 @@ function tomorrowDateString(): string {
   return d.toISOString().slice(0, 10); // 'YYYY-MM-DD'
 }
 
+// Records that this scheduled run happened, so the admin panel's System
+// tab can show "last run" without needing a separate scheduler service —
+// it just reads the same app_errors table the error log already uses.
+async function logRun(supabase: ReturnType<typeof createClient>, code: string | null, message: string) {
+  await supabase.rpc("log_error", { p_source: "push-notification", p_code: code, p_message: message }).catch(() => {});
+}
+
 Deno.serve(async (req) => {
   // Our own auth check — pass ?secret=... in the URL, or an
   // x-cron-secret header, either works (URL param is easiest to test
@@ -47,18 +54,22 @@ Deno.serve(async (req) => {
     .neq("status", "cancelled");
 
   if (resError) {
+    await logRun(supabase, "FAIL", resError.message);
     return new Response(JSON.stringify({ error: resError.message }), { status: 500 });
   }
 
   if (!reservations || reservations.length === 0) {
+    await logRun(supabase, null, "Ran — no check-ins tomorrow.");
     return new Response(JSON.stringify({ sent: 0, reason: "No check-ins tomorrow." }));
   }
 
   const { data: subs, error: subError } = await supabase.from("push_subscriptions").select("*");
   if (subError) {
+    await logRun(supabase, "FAIL", subError.message);
     return new Response(JSON.stringify({ error: subError.message }), { status: 500 });
   }
   if (!subs || subs.length === 0) {
+    await logRun(supabase, null, "Ran — no subscribed devices.");
     return new Response(JSON.stringify({ sent: 0, reason: "No subscribed devices." }));
   }
 
@@ -94,5 +105,6 @@ Deno.serve(async (req) => {
     await supabase.from("push_subscriptions").delete().in("endpoint", staleEndpoints);
   }
 
+  await logRun(supabase, null, `Ran — sent ${sent} notification(s), removed ${staleEndpoints.length} stale subscription(s).`);
   return new Response(JSON.stringify({ sent, staleRemoved: staleEndpoints.length }));
 });
