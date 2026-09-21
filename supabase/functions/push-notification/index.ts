@@ -31,7 +31,13 @@ function tomorrowDateString(): string {
 // tab can show "last run" without needing a separate scheduler service —
 // it just reads the same app_errors table the error log already uses.
 async function logRun(supabase: ReturnType<typeof createClient>, code: string | null, message: string) {
-  await supabase.rpc("log_error", { p_source: "push-notification", p_code: code, p_message: message }).catch(() => {});
+  // supabase.rpc() returns a minimal thenable in this Deno runtime, not a
+  // real Promise — it has no .catch(), so a try/await is needed instead.
+  try {
+    await supabase.rpc("log_error", { p_source: "push-notification", p_code: code, p_message: message });
+  } catch {
+    // best-effort — a logging failure should never break the actual run
+  }
 }
 
 Deno.serve(async (req) => {
